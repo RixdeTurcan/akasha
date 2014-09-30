@@ -1,0 +1,11 @@
+body{
+    background: black;
+}
+
+#canvas{
+    float: left;
+}
+
+hr{
+    clear: both;
+}
