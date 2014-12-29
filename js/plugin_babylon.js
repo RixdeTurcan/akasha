@@ -1,7 +1,11 @@
 BABYLON.SubMesh.prototype.render = function () {
-    _logger.start(this._mesh.name+' '+this.getMaterial().name);
+    if (!this._mesh.dontLog){
+        _logger.start(this._mesh.name+' '+this.getMaterial().name);
+    }
     this._renderingMesh.render(this);
-    _logger.end(this._mesh.name+' '+this.getMaterial().name, true);
+    if (!this._mesh.dontLog){
+        _logger.end(this._mesh.name+' '+this.getMaterial().name, true);
+    }
 };
 
 //Babylon.engine.js
@@ -168,7 +172,7 @@ BABYLON.RenderTargetTexture.prototype.render = function (useCameraPostProcess) {
                 delete this._waitingRenderList;
             }
 
-            if (!this.renderList || this.renderList.length == 0) {
+            if (!this.renderList) {
                 if (this.onAfterRender) { //+++
                     this.onAfterRender(); //+++
                 } //+++
@@ -342,11 +346,6 @@ BABYLON.Scene.prototype._renderForCamera = function (camera) {
         var skeleton = this._activeSkeletons.data[skeletonIndex];
 
         skeleton.prepare();
-    }
-
-    for (var customIndex = 0; customIndex < this.customRenderTargets.length; customIndex++) {
-        var renderTarget = this.customRenderTargets[customIndex];
-        this._renderTargets.push(renderTarget);
     }
 
     // Render targets

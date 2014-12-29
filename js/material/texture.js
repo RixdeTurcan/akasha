@@ -131,6 +131,5 @@ TextureMaterial.prototype.dispose = function(){
         this.texture.dispose();
     }
 
-    this.baseDispose();
 };
 

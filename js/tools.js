@@ -165,7 +165,7 @@ function FpsLogger(){
 
     this.lastLog = 0;
     this.shouldLog = false;
-    this.logDelay = 5000;
+    this.logDelay = 500;
 }
 
 FpsLogger.prototype.start = function(id)
@@ -216,13 +216,26 @@ FpsLogger.prototype.reset = function()
         this.shouldLog = false;
         var t = (new Date).getTime();
         if (t>this.lastLog+this.logDelay){
-            console.clear();
-            console.log("\n\n");
+            //console.clear();
+            //console.log("\n\n");
+            if (_profilerOutput){
+                _profilerOutput.html('<div style="height:8px;"></div><table>');
+            }
+
             this.lastLog = (new Date).getTime();
             this.shouldLog = true;
 
             for (var id in this.duration){
-              console.log(id+": "+(Math.ceil(this.duration[id]*100./this.itteration[id])/100.)+" ms");
+              var duration = (Math.ceil(this.duration[id]*100./this.itteration[id])/100.);
+
+              var percent = (Math.ceil(duration*1000/_config.world.realPeriodMs)/10.);
+              //console.log(id+": "+duration+" ms");
+              if (_profilerOutput){
+                  _profilerOutput.append('<tr><td style="padding-right:10px;padding-left:8px;">'+id+'</td>\
+                                          <td style="padding-right:10px;">'+duration+' ms</td>\
+                                          <td style="padding-right:8px;">'+percent+' %</td></tr>');
+              }
+              _profilerOutput.append('</table>');
             }
         }
     }

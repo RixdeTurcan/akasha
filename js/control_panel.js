@@ -23,6 +23,8 @@ function Controlpanel(camera, ocean, sky)
 
 }
 
+
+
 Controlpanel.prototype.addOceanControl = function(camera, ocean)
 {
     this.elem.push(new WaterControl(this, camera, ocean));

@@ -42,8 +42,8 @@ function Camera_Config(){
 }
 
 function World_Config(){
-    this.canvasWidth = 1000;
-    this.canvasHeight = 500;
+    this.canvasWidth = 1200;
+    this.canvasHeight = 800;
 
     this.cameraPos = new BABYLON.Vector3();
     this.realCameraPos = new BABYLON.Vector3();
@@ -54,10 +54,11 @@ function World_Config(){
     this.fogMode = BABYLON.Scene.FOGMODE_EXP2;
     this.fogDensity = 0.00028;
 
-    this.fps = 30. * 1.33; //30 fps
+    this.realFps = 30.;
+    this.fps = this.realFps * 1.33;
     this.period = 1./this.fps;
     this.periodMs = 1000.*this.period;
-
+    this.realPeriodMs = 1000./this.realFps;
     this.scene = null;
     this.canvas = null;
 }
@@ -81,13 +82,13 @@ function Player_Config(){
 
 function Sky_Config(){
     this.params = {
-        sunDir: new BABYLON.Vector3(1.0, 0.4, 1.0),
+        sunDir: new BABYLON.Vector3(0.3, 0.3, -1.0),
         sunLight: new BABYLON.Vector3(1.0, 1.0, 1.0),
         sunColor: new BABYLON.Vector3(1.0, 1.0, 1.0),
         earthRadius: 6400.e3,
         atmosphereRadius: 23.e3,
 
-        betaRayleight: new BABYLON.Vector3(0.8, 3.2, 5.5),
+        betaRayleight: new BABYLON.Vector3(2.5, 5.5, 8.),
         betaMie: new BABYLON.Vector3(1.5, 1.5, 1.4),
         betaAerosol: new BABYLON.Vector3(1., 1.31, 1.8),
         betaOutScat: new BABYLON.Vector3(2., 5., 8.),
@@ -116,7 +117,7 @@ function Sky_Config(){
         shadowDarkness: 0.4,
         shadowHardness: 0.15,
 
-        velocity: 100.,
+        velocity: 0.,//100.,
         direction: new BABYLON.Vector2(-1., 0.)
     };
 

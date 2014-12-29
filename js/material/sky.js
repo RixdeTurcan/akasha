@@ -110,6 +110,5 @@ SkyMaterial.prototype.bind = function (world, mesh) {
 };
 
 SkyMaterial.prototype.dispose = function(){
-    this.baseDispose();
 };
 
