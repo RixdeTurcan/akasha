@@ -5,16 +5,22 @@ function Sky(camera, withcloud){
     this.withcloud = withcloud;
 
     if (this.withcloud){
+        //Noise texture
+        this.noiseTexture = new BABYLON.Texture("asset/noise.png", _config.world.scene);
+        this.noiseTexture.wrapU = BABYLON.Texture.WRAP_ADDRESSMODE;
+        this.noiseTexture.wrapV = BABYLON.Texture.WRAP_ADDRESSMODE;
+
         //Cloud height
         this.cloudHeightMaterial = new CloudHeightMaterial("CloudHeightMaterial", _config.world.scene);
 
         this.cloudHeightTexture = new BABYLON.RenderTargetTexture("CloudHeightTexture",
-                                                                  _config.sky.cloud.textureSize,
+                                                                  _config.sky.cloud.heightSize,
                                                                   _config.world.scene,
                                                                   {generateMipMaps: false,
-                                                                      enableTextureFloat: false,
+                                                                      enableTextureFloat: true,
                                                                       generateDepthBuffer: false});
         this.cloudHeightTexture.material = this.cloudHeightMaterial;
+        this.cloudHeightTexture.material.noiseTexture = this.noiseTexture;
         this.cloudHeightMesh = createVertexPassthroughMesh(this.cloudHeightTexture.material,
                                                            _config.world.scene,
                                                            true, false);
@@ -30,12 +36,13 @@ function Sky(camera, withcloud){
         this.cloudHeightMaterial2 = new CloudHeightMaterial("CloudHeightMaterial2", _config.world.scene);
 
         this.cloudHeightTexture2 = new BABYLON.RenderTargetTexture("CloudHeightTexture2",
-                                                                   _config.sky.cloud.textureSize,
+                                                                   _config.sky.cloud.heightSize,
                                                                    _config.world.scene,
                                                                    {generateMipMaps: false,
-                                                                       enableTextureFloat: false,
+                                                                       enableTextureFloat: true,
                                                                        generateDepthBuffer: false});
         this.cloudHeightTexture2.material = this.cloudHeightMaterial2;
+        this.cloudHeightTexture2.material.noiseTexture = this.noiseTexture;
         this.cloudHeightMesh2 = createVertexPassthroughMesh(this.cloudHeightTexture2.material,
                                                             _config.world.scene,
                                                             true, false);
@@ -52,12 +59,13 @@ function Sky(camera, withcloud){
         this.cloudHeightMaterial3 = new CloudHeightMaterial("CloudHeightMaterial3", _config.world.scene);
 
         this.cloudHeightTexture3 = new BABYLON.RenderTargetTexture("CloudHeightTexture3",
-                                                                   _config.sky.cloud.textureSize,
+                                                                   _config.sky.cloud.heightSize,
                                                                    _config.world.scene,
                                                                    {generateMipMaps: false,
-                                                                       enableTextureFloat: false,
+                                                                       enableTextureFloat: true,
                                                                        generateDepthBuffer: false});
         this.cloudHeightTexture3.material = this.cloudHeightMaterial3;
+        this.cloudHeightTexture3.material.noiseTexture = this.noiseTexture;
         this.cloudHeightMesh3 = createVertexPassthroughMesh(this.cloudHeightTexture3.material,
                                                             _config.world.scene,
                                                             true, false);
@@ -79,10 +87,10 @@ function Sky(camera, withcloud){
         this.cloudSunDepthMaterial = new CloudSunDepthMaterial("CloudSunDepthMaterial", _config.world.scene);
 
         this.cloudSunDepthTexture = new BABYLON.RenderTargetTexture("CloudSunDepthTexture",
-                                                                    _config.sky.cloud.textureSize,
+                                                                    _config.sky.cloud.depthSize,
                                                                     _config.world.scene,
                                                                     {generateMipMaps: false,
-                                                                        enableTextureFloat: false,
+                                                                        enableTextureFloat: true,
                                                                         generateDepthBuffer: false});
         this.cloudSunDepthTexture.material = this.cloudSunDepthMaterial;
         this.cloudSunDepthTexture.material.cloudHeightTexture = this.cloudHeightTexture3;
@@ -101,10 +109,10 @@ function Sky(camera, withcloud){
         this.cloudSunDepthMaterial2 = new CloudSunDepthMaterial("CloudSunDepthMaterial2", _config.world.scene);
 
         this.cloudSunDepthTexture2 = new BABYLON.RenderTargetTexture("CloudSunDepthTexture2",
-                                                                     _config.sky.cloud.textureSize,
+                                                                     _config.sky.cloud.depthSize,
                                                                      _config.world.scene,
                                                                      {generateMipMaps: false,
-                                                                         enableTextureFloat: false,
+                                                                         enableTextureFloat: true,
                                                                          generateDepthBuffer: false});
         this.cloudSunDepthTexture2.material = this.cloudSunDepthMaterial2;
         this.cloudSunDepthTexture2.material.cloudHeightTexture = this.cloudHeightTexture3;
@@ -124,10 +132,10 @@ function Sky(camera, withcloud){
         this.cloudSunDepthMaterial3 = new CloudSunDepthMaterial("CloudSunDepthMaterial3", _config.world.scene);
 
         this.cloudSunDepthTexture3 = new BABYLON.RenderTargetTexture("CloudSunDepthTexture3",
-                                                                     _config.sky.cloud.textureSize,
+                                                                     _config.sky.cloud.depthSize,
                                                                      _config.world.scene,
                                                                      {generateMipMaps: false,
-                                                                         enableTextureFloat: false,
+                                                                         enableTextureFloat: true,
                                                                          generateDepthBuffer: false});
         this.cloudSunDepthTexture3.material = this.cloudSunDepthMaterial3;
         this.cloudSunDepthTexture3.material.cloudHeightTexture = this.cloudHeightTexture3;
@@ -147,7 +155,6 @@ function Sky(camera, withcloud){
         this.cloudSunDepthTexture2.material.swapTexture = this.cloudSunDepthTexture;
         this.cloudSunDepthTexture3.material.swapTexture = this.cloudSunDepthTexture;
     }
-
     //Sky
     this.renderMaterial = new SkyMaterial("SkyMaterial", _config.world.scene, this.camera);
 
@@ -174,7 +181,6 @@ function Sky(camera, withcloud){
     //Render
     this.material = new TextureMaterial("skyTextureMaterial", _config.world.scene, this);
     this.material.texture = this.renderTexture;
-
     this.mesh = createVertexPassthroughMesh(this.material,
                                             _config.world.scene,
                                             true, true);
@@ -216,18 +222,20 @@ Sky.prototype.update = function(){
         var cloudDeltaPosXY = _config.sky.cloud.direction.scale(_config.sky.cloud.velocity*_config.time);
         var cloudDeltaPos = new BABYLON.Vector3(cloudDeltaPosXY.x, 0., cloudDeltaPosXY.y);
 
-        var s = this.step%12;
+        var s = this.step%14;
         if (s==0){
             this.material.cloudSunDepthTexture = null;
             this.material.cloudHeightTexture = this.cloudHeightTexture2;
             this.material.cloudHeightTexture.material.octaveStart = 0;
-            this.material.cloudHeightTexture.material.octaveEnd = 3;
+            this.material.cloudHeightTexture.material.octaveEnd = 6;
             this.material.cloudHeightTexture.material.reset = true;
             this.material.cloudHeightTexture.material.end = false;
+
+            this.lastPlayerPosComputed = _config.player.position.add(cloudDeltaPos);
         }else if (s==1){
             this.material.cloudSunDepthTexture = null;
             this.material.cloudHeightTexture = this.cloudHeightTexture3;
-            this.material.cloudHeightTexture.material.octaveStart = 3;
+            this.material.cloudHeightTexture.material.octaveStart = 6;
             this.material.cloudHeightTexture.material.octaveEnd = 6;
             this.material.cloudHeightTexture.material.reset = false;
             this.material.cloudHeightTexture.material.end = true;
@@ -237,62 +245,74 @@ Sky.prototype.update = function(){
             this.material.cloudSunDepthTexture = this.cloudSunDepthTexture;
             this.material.cloudHeightTexture = null;
             this.material.cloudSunDepthTexture.material.stepStart = 0;
-            this.material.cloudSunDepthTexture.material.stepEnd = 24;
-            this.material.cloudSunDepthTexture.material.nbStepTotal = 240;
+            this.material.cloudSunDepthTexture.material.stepEnd = 15;
+            this.material.cloudSunDepthTexture.material.nbStepTotal = 180;
             this.material.cloudSunDepthTexture.material.reset = true;
         }else if (s==3){
             this.material.cloudSunDepthTexture = this.cloudSunDepthTexture2;
-            this.material.cloudSunDepthTexture.material.stepStart = 24;
-            this.material.cloudSunDepthTexture.material.stepEnd = 48;
-            this.material.cloudSunDepthTexture.material.nbStepTotal = 240;
+            this.material.cloudSunDepthTexture.material.stepStart = 15;
+            this.material.cloudSunDepthTexture.material.stepEnd = 30;
+            this.material.cloudSunDepthTexture.material.nbStepTotal = 180;
             this.material.cloudSunDepthTexture.material.reset = false;
         }else if (s==4){
             this.material.cloudSunDepthTexture = this.cloudSunDepthTexture;
-            this.material.cloudSunDepthTexture.material.stepStart = 48;
-            this.material.cloudSunDepthTexture.material.stepEnd = 72;
-            this.material.cloudSunDepthTexture.material.nbStepTotal = 240;
+            this.material.cloudSunDepthTexture.material.stepStart = 30;
+            this.material.cloudSunDepthTexture.material.stepEnd = 45;
+            this.material.cloudSunDepthTexture.material.nbStepTotal = 180;
             this.material.cloudSunDepthTexture.material.reset = false;
         }else if (s==5){
             this.material.cloudSunDepthTexture = this.cloudSunDepthTexture2;
-            this.material.cloudSunDepthTexture.material.stepStart = 72;
-            this.material.cloudSunDepthTexture.material.stepEnd = 96;
-            this.material.cloudSunDepthTexture.material.nbStepTotal = 240;
+            this.material.cloudSunDepthTexture.material.stepStart = 45;
+            this.material.cloudSunDepthTexture.material.stepEnd = 60;
+            this.material.cloudSunDepthTexture.material.nbStepTotal = 180;
             this.material.cloudSunDepthTexture.material.reset = false;
         }else if (s==6){
             this.material.cloudSunDepthTexture = this.cloudSunDepthTexture;
-            this.material.cloudSunDepthTexture.material.stepStart = 96;
-            this.material.cloudSunDepthTexture.material.stepEnd = 120;
-            this.material.cloudSunDepthTexture.material.nbStepTotal = 240;
+            this.material.cloudSunDepthTexture.material.stepStart = 60;
+            this.material.cloudSunDepthTexture.material.stepEnd = 75;
+            this.material.cloudSunDepthTexture.material.nbStepTotal = 180;
             this.material.cloudSunDepthTexture.material.reset = false;
         }else if (s==7){
             this.material.cloudSunDepthTexture = this.cloudSunDepthTexture2;
-            this.material.cloudSunDepthTexture.material.stepStart = 120;
-            this.material.cloudSunDepthTexture.material.stepEnd = 144;
-            this.material.cloudSunDepthTexture.material.nbStepTotal = 240;
+            this.material.cloudSunDepthTexture.material.stepStart = 75;
+            this.material.cloudSunDepthTexture.material.stepEnd = 90;
+            this.material.cloudSunDepthTexture.material.nbStepTotal = 180;
             this.material.cloudSunDepthTexture.material.reset = false;
         }else if (s==8){
             this.material.cloudSunDepthTexture = this.cloudSunDepthTexture;
-            this.material.cloudSunDepthTexture.material.stepStart = 144;
-            this.material.cloudSunDepthTexture.material.stepEnd = 168;
-            this.material.cloudSunDepthTexture.material.nbStepTotal = 240;
+            this.material.cloudSunDepthTexture.material.stepStart = 90;
+            this.material.cloudSunDepthTexture.material.stepEnd = 105;
+            this.material.cloudSunDepthTexture.material.nbStepTotal = 180;
             this.material.cloudSunDepthTexture.material.reset = false;
         }else if (s==9){
             this.material.cloudSunDepthTexture = this.cloudSunDepthTexture2;
-            this.material.cloudSunDepthTexture.material.stepStart = 168;
-            this.material.cloudSunDepthTexture.material.stepEnd = 192;
-            this.material.cloudSunDepthTexture.material.nbStepTotal = 240;
+            this.material.cloudSunDepthTexture.material.stepStart = 105;
+            this.material.cloudSunDepthTexture.material.stepEnd = 120;
+            this.material.cloudSunDepthTexture.material.nbStepTotal = 180;
             this.material.cloudSunDepthTexture.material.reset = false;
         }else if (s==10){
             this.material.cloudSunDepthTexture = this.cloudSunDepthTexture;
-            this.material.cloudSunDepthTexture.material.stepStart = 192;
-            this.material.cloudSunDepthTexture.material.stepEnd = 216;
-            this.material.cloudSunDepthTexture.material.nbStepTotal = 240;
+            this.material.cloudSunDepthTexture.material.stepStart = 120;
+            this.material.cloudSunDepthTexture.material.stepEnd = 135;
+            this.material.cloudSunDepthTexture.material.nbStepTotal = 180;
             this.material.cloudSunDepthTexture.material.reset = false;
         }else if (s==11){
+            this.material.cloudSunDepthTexture = this.cloudSunDepthTexture2;
+            this.material.cloudSunDepthTexture.material.stepStart = 135;
+            this.material.cloudSunDepthTexture.material.stepEnd = 150;
+            this.material.cloudSunDepthTexture.material.nbStepTotal = 180;
+            this.material.cloudSunDepthTexture.material.reset = false;
+        }else if (s==12){
+            this.material.cloudSunDepthTexture = this.cloudSunDepthTexture;
+            this.material.cloudSunDepthTexture.material.stepStart = 150;
+            this.material.cloudSunDepthTexture.material.stepEnd = 165;
+            this.material.cloudSunDepthTexture.material.nbStepTotal = 180;
+            this.material.cloudSunDepthTexture.material.reset = false;
+        }else if (s==13){
             this.material.cloudSunDepthTexture = this.cloudSunDepthTexture3;
-            this.material.cloudSunDepthTexture.material.stepStart = 216;
-            this.material.cloudSunDepthTexture.material.stepEnd = 240;
-            this.material.cloudSunDepthTexture.material.nbStepTotal = 240;
+            this.material.cloudSunDepthTexture.material.stepStart = 165;
+            this.material.cloudSunDepthTexture.material.stepEnd = 180;
+            this.material.cloudSunDepthTexture.material.nbStepTotal = 180;
             this.material.cloudSunDepthTexture.material.reset = false;
 
             this.lastPlayerPos = this.lastPlayerPosComputed.clone();

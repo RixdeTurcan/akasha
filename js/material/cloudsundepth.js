@@ -42,12 +42,17 @@ CloudSunDepthMaterial.prototype.isReady = function (mesh) {
 
     defines.push('#define DEPTH 1.');
 
-    defines.push('#define INV_TEXTURE_SIZE '+(1./_config.sky.cloud.textureSize));
+    defines.push('#define INV_TEXTURE_SIZE '+(1./_config.sky.cloud.depthSize));
 
     defines.push('#define STEP_START '+this.stepStart);
     defines.push('#define STEP_END '+this.stepEnd);
     defines.push('#define NB_STEP_F '+(this.nbStepTotal)+'.');
 
+    var ratioEye = 2;
+
+    defines.push('#define STEP_START_EYE '+parseInt(this.stepStart/ratioEye));
+    defines.push('#define STEP_END_EYE '+parseInt(this.stepEnd/ratioEye));
+    defines.push('#define NB_STEP_F_EYE '+(this.nbStepTotal/ratioEye)+'.');
 
     if (this.reset){
         defines.push('#define RESET ');
@@ -90,7 +95,7 @@ CloudSunDepthMaterial.prototype.bind = function (world, mesh) {
     }
 
     var sunClampedDir = _config.sky.params.sunDir.clone();
-    sunClampedDir.y = Math.max(sunClampedDir.y, 0.1);
+    //sunClampedDir.y = Math.max(sunClampedDir.y, 0.1);
     this._effect.setVector3('uSunClampedDirection', sunClampedDir);
 
     this._effect.setFloat('uCloudHeight', _config.sky.cloud.cloudHeight);

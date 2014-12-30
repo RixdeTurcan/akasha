@@ -9,6 +9,7 @@ function World($canvas){
     this.$canvas.css({width: _config.world.canvasWidth+'px', height: _config.world.canvasHeight +'px'});
 
     this.engine = new BABYLON.Engine(this.canvas, true, {});
+
     this.scene = new BABYLON.Scene(this.engine);
     _config.world.scene = this.scene;
 
@@ -51,13 +52,13 @@ World.prototype.renderLoop = function(){
     var delta = date - this.date;
     if (delta > _config.world.periodMs){
         _logger.reset();
-        //_logger.start('main loop');
+        _logger.start('main loop');
         this.engine.beginFrame();
         this.preProcess();
         this.scene.render();
         this.engine.endFrame();
 
-        //_logger.end('main loop', true);
+        _logger.end('main loop', true);
 
         this.date = date;// - (delta % this.fpsInterval);
     }

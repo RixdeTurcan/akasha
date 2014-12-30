@@ -18,11 +18,23 @@ vec3 computeEyeToPosDir(vec2 uv)
     return eyeToPosDir;
 }
 
+float atan2(float y, float x)
+{
+    if (abs(x) > abs(y))
+    {
+      return atan(y, x);
+    }
+    else
+    {
+      return PI/2.0 - atan(x,y);
+    }
+}
+
 vec2 computeUv(vec3 eyeToPosDir)
 {
       vec2 uv = vec2(0., 0.);
 
-      uv.x = atan(eyeToPosDir.z, eyeToPosDir.x)/(2.*PI);
+      uv.x = atan2(eyeToPosDir.z, eyeToPosDir.x)/(2.*PI);
       uv.y = (eyeToPosDir.y*0.5+0.5);
 
       return 1.-uv;

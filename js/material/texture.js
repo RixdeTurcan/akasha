@@ -81,7 +81,7 @@ TextureMaterial.prototype.isReady = function (mesh) {
                                            [BABYLON.VertexBuffer.UVKind],
                                            ['uEyePosInWorld', 'uVerticalShift',
                                             'uMinPosLeft', 'uMinPosRight',
-                                            'uMaxPosLeft', 'uMaxPosRight',],
+                                            'uMaxPosLeft', 'uMaxPosRight'],
                                            ['uSampler'],
                                            join);
     }

@@ -27,6 +27,9 @@ void main(void) {
 
       vec2 uv = computeUv(eyeToPosDir, uVerticalShift);
 
-      gl_FragColor = texture2D(uSampler, uv);
+      vec4 skyData = texture2D(uSampler, uv);
+      vec3 color = skyData.rgb;
+
+      gl_FragColor = vec4(color, 1.);
     #endif
 }

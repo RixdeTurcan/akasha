@@ -1,6 +1,7 @@
 uniform vec3 uSunDirection;
 uniform vec3 uSunLight;
 uniform vec3 uSunColor;
+vec3 uMoonColor = vec3(0.6, 0.8, 0.8);
 
 uniform float uEarthRadius;
 uniform float uAtmosphereRadius;
@@ -17,7 +18,7 @@ uniform float uMieExentricity;
 uniform float uRayleighPolarization;
 uniform float uAerosolFactor;
 uniform float uOutScatFactor;
-float uMoonExentricity = 0.98;
+float uMoonExentricity = 0.985;
 
 uniform float uCloudHeight;
 uniform float uCloudVerticalDepth;
@@ -26,6 +27,7 @@ uniform float uDensity;
 vec3 uEarthCenterPos = vec3(0., -uEarthRadius, 0.);
 vec3 uRgbWaveLength = vec3(680., 550., 440.);
 
+uniform vec4 uFogInfos;
 
 uniform sampler2D uCloudSampler;
 
@@ -65,17 +67,6 @@ float phaseMie(float cosTheta, float exentricity)
 
     return b/pow(abs(c), 1.5);
 }
-
-float phaseMieCloud(float cosTheta)
-{
-    float g = 0.7;
-    float a = 1.-g;
-    float b = a*a/(4.*PI);
-    float c = 1.+g*g-2.*g*cosTheta;
-
-    return b/pow(abs(c), 1.5);
-}
-
 
 float phaseMieAerosol(float cosTheta, float cosGamma)
 {
@@ -117,12 +108,14 @@ void main(void) {
     //Angle between the view direction and the vertical
     float cosGamma = dot(eyeToPosDir, vec3(0., 1., 0.));
 
+    //Angle between the sun and the vertical
+    float cosAlpha = dot(uSunDirection, vec3(0., 1., 0.));
 
     //Out scattering effect
     vec3 outScatAbsorbtion = uBetaOutScat * uOutScatFactor;
 
     //Rayleigh effect
-    vec3 outScatRayleigh = exp(outScatAbsorbtion*(distSunView+distViewdir)*0.4);
+    vec3 outScatRayleigh = exp(outScatAbsorbtion*(distSunView+distViewdir)*0.8);
     vec3 inScatFactor = uBetaRayleigh * phaseRayleigh(cosTheta) * outScatRayleigh;
 
     //Mie effect
@@ -137,7 +130,7 @@ void main(void) {
     inScatFactor += uBetaAerosol*phaseAerosol(cosTheta, cosGamma) * outScatAerosol;
 
     //Moon effect
-    inScatFactor += uBetaMoon*phaseMie(-cosTheta, uMoonExentricity) * 0.8;
+    inScatFactor += uBetaMoon*clamp(phaseMie(-cosTheta, uMoonExentricity), 0., 0.8);
 
 
     //Final sky color
@@ -148,6 +141,7 @@ void main(void) {
 
 
  //Cloud
+   if (eyeToPosDir.y>0.){
     vec3 cloudPos = vec3(0., 0., 0.);
     cloudPos.y = uCloudHeight;
     cloudPos.xz = cloudPos.y * eyeToPosDir.xz / eyeToPosDir.y;
@@ -156,147 +150,58 @@ void main(void) {
     vec3 eyeTocloudPosDir = normalize(cloudPos);
     vec2 uvCloud = computeUv(eyeTocloudPosDir);
 
-
     vec4 cloudData = texture2D(uCloudSampler, uvCloud);
-    float cloudNormalizedDensity = cloudData.r;
-    float cloudNormalizedDensityEye = cloudData.g;
+    float cloudNormalizedDensity = cloudData.r*4.;
+    float cloudNormalizedDensityEye = cloudData.g*4.;
+    float cloudNormalizedDensityMoon = cloudData.b*4.;
+    float cloudBump = cloudData.a;
 
-    if (cloudNormalizedDensity>0.)
+    if (cloudNormalizedDensityEye>0.)
     {
       vec3 sunDir = uSunDirection;
-      sunDir.y = max(sunDir.y, 0.001);
+      vec3 moonDir = -uSunDirection;
+
       float cloudHeightMax = uCloudVerticalDepth;
       float alpha = cloudHeightMax/sunDir.y;
       vec3 maxDist = sunDir*alpha;
       float maxDensity = length(maxDist);
 
+      //Sun
       float cloudDensity = maxDensity * cloudNormalizedDensity;
-      float phase = 0.8 + min(phaseMieCloud(cosTheta) / cloudNormalizedDensity, 2.);
-
-
+      float phase = 0.8 + 0.3*min(phaseMie(cosTheta, 0.7) / cloudNormalizedDensity, 2.);
+      float alphaFactor = (1.+0.3*cloudBump);
       float densityFactor = uDensity;
-      vec3 cloudColor = uSunColor * phase * (0.2 + 0.8*exp(-densityFactor * cloudDensity));
+      vec3 cloudColor = uSunColor * phase * alphaFactor * (0.4 + 0.6*exp(-densityFactor * cloudDensity));
 
-      float factor = smoothstep(0., 0.3, cloudNormalizedDensityEye) * smoothstep(0.0, 0.2, eyeToPosDir.y);
+      //Moon
+      cloudDensity = maxDensity * cloudNormalizedDensityMoon;
+      phase =  0.2 + 0.5*min(phaseMie(-cosTheta, 0.7) / cloudNormalizedDensityMoon, 2.);
+      alphaFactor = (1.+0.3*cloudBump);
+      cloudColor += uMoonColor * phase * alphaFactor * (1.*exp(-densityFactor * cloudDensity));
 
-      color = mix(color, cloudColor, factor);
+
+      //Sun reflection
+      cloudDensity = maxDensity * cloudNormalizedDensity;
+      phase = 0.4 + 10.*min(phaseMie(cosTheta, 0.5) / cloudNormalizedDensity, 4.);
+      alphaFactor = pow(1.-abs(cosAlpha), 8.) * (0.5+cloudBump);
+      densityFactor = uDensity;
+      cloudColor += vec3(0.6, 0.2, 0.1) * phase * alphaFactor * (0.4 + 0.6*exp(-densityFactor * cloudDensity/500.));
+      float factor = smoothstep(0., 0.2, cloudNormalizedDensityEye);
+
+
+      vec3 cloudPos = vec3(0., 0., 0.);
+      cloudPos.y = uCloudHeight;
+      cloudPos.xz = cloudPos.y * eyeToPosDir.xz / eyeToPosDir.y;
+      cloudPos.xz += uDeltaPlayerPos.xz;
+
+      float fogFactor = CalcFogFactor(length(cloudPos), uFogInfos);
+
+      color = mix(color, cloudColor, factor*fogFactor);
 
 
     }
 
-
-
-
-
-
-
-
+   }
 
     gl_FragColor = vec4(color, 1.);
 }
-/*
-void main(void) {
-    vec2 uv = vUv;
-
-
-    vec3 uEyePosInWorld = vec3(0., 0., 0.);
-    vec3 eyeToPosDir = vec3(0., 0., 0.);
-
-    eyeToPosDir.y = uv.y*2.-1.;
-
-    float beta = uv.x*2.*PI;
-    float alpha = sqrt(1.-eyeToPosDir.y*eyeToPosDir.y);
-
-    eyeToPosDir.x = alpha*cos(beta);
-    eyeToPosDir.z = alpha*sin(beta);
-
-
-    vec3 viewDirFarPoint = atmosphereIntersectionPoint(uEyePosInWorld, eyeToPosDir);
-    float distViewdir = length(viewDirFarPoint-uEyePosInWorld);
-
-    float cosTheta = dot(eyeToPosDir, uSunDirection);
-    float cosGamma = dot(eyeToPosDir, vec3(0., 1., 0.));
-
-    vec3 inScatFactor = mix(uBetaRayleigh*phaseRayleigh(cosTheta),
-                            uBetaAerosol*phaseAerosol(cosTheta),
-                            factorAerosol(cosGamma, cosTheta))
-                      + uBetaMie*phaseMie(cosTheta);
-
-    vec3 outScatAbsorbtion = uBetaOutScat * uOutScatFactor;
-
-    #ifdef OUT_SCAT_NB_STEP
-
-      vec3 outScatFactor = vec3(0., 0., 0.);
-      float frac = 1./float(OUT_SCAT_NB_STEP);
-      vec3 fracDist = (viewDirFarPoint-uEyePosInWorld)*frac*frac;
-      float fracDistNorm = length(fracDist);
-
-      vec3 scatterPoint = uEyePosInWorld;
-
-      for(int i=0; i<OUT_SCAT_NB_STEP; i++)
-      {
-        float iF = float(i);
-        vec3 sunDirFarPoint = atmosphereIntersectionPoint(scatterPoint, uSunDirection);
-
-        float dist = fracDistNorm*iF + length(sunDirFarPoint-scatterPoint);
-
-        outScatFactor += taylorExp(outScatAbsorbtion*dist);
-
-        scatterPoint = uEyePosInWorld + fracDist * iF * iF ;
-      }
-
-      outScatFactor *= frac;
-
-    #else
-
-      vec3 sunDirFarPoint = atmosphereIntersectionPoint(uEyePosInWorld, uSunDirection);
-
-      float dist = length(sunDirFarPoint-uEyePosInWorld);
-
-      vec3 outScatFactor = taylorExp(outScatAbsorbtion*dist);
-
-    #endif
-
-    vec3 color = uSunLight * inScatFactor * outScatFactor;
-
-    //Cloud
-    vec3 cloudPos = vec3(0., 0., 0.);
-    cloudPos.y = uCloudHeight;
-    cloudPos.xz = cloudPos.y * eyeToPosDir.xz / eyeToPosDir.y;
-    cloudPos.xz += uDeltaPlayerPos.xz;
-
-    vec3 eyeTocloudPosDir = normalize(cloudPos);
-    vec2 uvCloud = computeUv(eyeTocloudPosDir);
-
-
-    vec4 cloudData = texture2D(uCloudSampler, uvCloud);
-    float cloudNormalizedDensity = cloudData.r;
-    float cloudNormalizedDensityEye = cloudData.g;
-
-    if (cloudNormalizedDensity>0.)
-    {
-      vec3 sunDir = uSunDirection;
-      sunDir.y = max(sunDir.y, 0.001);
-      float cloudHeightMax = uCloudVerticalDepth;
-      float alpha = cloudHeightMax/sunDir.y;
-      vec3 maxDist = sunDir*alpha;
-      float maxDensity = length(maxDist);
-
-      float cloudDensity = maxDensity * cloudNormalizedDensity;
-      float phase = 0.8 + min(phaseMieCloud(cosTheta) / cloudNormalizedDensity, 2.);
-
-
-      float densityFactor = uDensity;
-      vec3 cloudColor = uSunColor * phase * (0.2 + 0.8*exp(-densityFactor * cloudDensity));
-
-      float factor = smoothstep(0., 0.3, cloudNormalizedDensityEye) * smoothstep(0.0, 0.2, eyeToPosDir.y);
-
-      color = mix(color, cloudColor, factor);
-
-
-    }
-
-    gl_FragColor = vec4(color, 1.);
-
-}
-*/

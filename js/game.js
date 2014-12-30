@@ -1,6 +1,7 @@
 function Test(number)
 {
     this.RTTPrinterSize = 512;
+    this.RTTBinded = false;
 
     this.skytest = {};
     this.addTest('Sky', 1);
@@ -63,7 +64,7 @@ Test.prototype.startCloudTest = function(){
         this.skytest.world.update();
         this.skytest.sky.update();
 
-        this.printRTT(this.rttTextureToRender.getInternalTexture());
+        this.printRTT(this.rttTextureToRender);
 
 
         if (this.skytest.world.scene.getAnimationRatio()){
@@ -112,7 +113,7 @@ Test.prototype.startSkyTest = function(){
         this.skytest.world.update();
         this.skytest.sky.update();
 
-        this.printRTT(this.rttTextureToRender.getInternalTexture());
+        this.printRTT(this.rttTextureToRender);
 
 
         if (this.skytest.world.scene.getAnimationRatio()){
@@ -147,7 +148,7 @@ Test.prototype.createCloudTestRTTPrinter = function(){
     this.startControlPanel(this.$rttPanel);
 
     var f = function(name){
-        console.log(name);
+        this.RTTBinded = true;
         if (name=="Cloudheight"){
             this.rttTextureToRender.material.texture = this.skytest.sky.cloudHeightTexture3;
         }else if (name=="Clouddepth"){
@@ -156,6 +157,7 @@ Test.prototype.createCloudTestRTTPrinter = function(){
             this.rttTextureToRender.material.texture = this.skytest.sky.renderTexture;
         }else{
             this.rttTextureToRender.material.texture = null;
+            this.RTTBinded = false;
         }
     }.bind(this)
 
@@ -172,10 +174,12 @@ Test.prototype.createSkyTestRTTPrinter = function(){
     this.startControlPanel(this.$rttPanel);
 
     var f = function(name){
+        this.RTTBinded = true;
         if (name=="Sky color"){
             this.rttTextureToRender.material.texture = this.skytest.sky.renderTexture;
         }else{
             this.rttTextureToRender.material.texture = null;
+            this.RTTBinded = false;
         }
     }.bind(this)
 
@@ -206,7 +210,7 @@ Test.prototype.createSkyTestControlPanel = function(){
                                            updateSunDir(parseInt($('#sunThetaVal').html())*_toRad, ui.value*_toRad);
                                        };
                                    })(this),
-                                   0, 359, 0.1);
+                                   0, 359, 0.05);
 
     this.ControlPanelAddSliderFunc(this.$sunCategory, 'Sun Theta',
                                    'sunTheta', 'waterControl', 'waterControlName',
@@ -288,8 +292,9 @@ Test.prototype.initRTTPrinter = function(){
 }
 
 
-Test.prototype.printRTT = function(texture){
-    if (texture){
+Test.prototype.printRTT = function(tex){
+    if (this.RTTBinded){
+        var texture = tex.getInternalTexture();
         var gl = _gl;
         // Create a framebuffer backed by the texture
         var framebuffer = gl.createFramebuffer();
@@ -305,8 +310,12 @@ Test.prototype.printRTT = function(texture){
         var imageData = this.rttCtx.createImageData(this.RTTPrinterSize, this.RTTPrinterSize);
         imageData.data.set(data);
         this.rttCtx.putImageData(imageData, 0, 0);
+        this.rttIsFilled = false;
     }else{
-        this.rttCtx.fillRect(0, 0, this.RTTPrinterSize, this.RTTPrinterSize);
+        if (!this.rttIsFilled){
+            this.rttCtx.fillRect(0, 0, this.RTTPrinterSize, this.RTTPrinterSize);
+            this.rttIsFilled = true;
+        }
     }
 }
 

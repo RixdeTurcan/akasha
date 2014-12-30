@@ -42,7 +42,7 @@ CloudHeightMaterial.prototype.isReady = function (mesh) {
 
     defines.push('#define DEPTH 1.');
 
-    defines.push('#define INV_TEXTURE_SIZE '+(1./_config.sky.cloud.textureSize));
+    defines.push('#define INV_TEXTURE_SIZE '+(1./_config.sky.cloud.heightSize));
 
     if (this.reset){
         defines.push('#define RESET ');
@@ -64,6 +64,15 @@ CloudHeightMaterial.prototype.isReady = function (mesh) {
         }
     }
 
+
+    if (this.noiseTexture) {
+        if (!this.noiseTexture.isReady()) {
+            return false;
+        } else {
+            defines.push('#define NOISE_TEXTURE ');
+        }
+    }
+
     var join = defines.join("\n");
     if (this._cachedDefines != join && this.shader.isReady)
     {
@@ -73,7 +82,7 @@ CloudHeightMaterial.prototype.isReady = function (mesh) {
                                            [BABYLON.VertexBuffer.UVKind],
                                            ['uCloudPos', 'uPeriod',
                                            'uCloudHeight', 'uPresence'],
-                                           ['uSwapSampler'],
+                                           ['uSwapSampler', 'uNoiseSampler'],
                                            join);
     }
 
@@ -101,6 +110,9 @@ CloudHeightMaterial.prototype.bind = function (world, mesh) {
         this._effect.setTexture('uSwapSampler', this.swapTexture);
     }
 
+    if (this.noiseTexture) {
+        this._effect.setTexture('uNoiseSampler', this.noiseTexture);
+    }
 };
 
 CloudHeightMaterial.prototype.dispose = function(){

@@ -20,12 +20,14 @@ function Camera(cameraType, position){
         this.minRadius                = _config.camera.minRadius;
         this.camera.maxZ              = _config.camera.maxZ;
 
+        this.camera.alpha = _config.player.angle;
     }
 }
 
 Camera.prototype.update = function(){
     var factor = 1-(this.camera.beta-_pi/2)*this.radiusScaleFactor*this.radiusScaleFactor;
     this.camera.radius = this.minRadius*Math.sqrt(factor);
+    _config.player.angle = this.camera.alpha;
 }
 
 Camera.prototype.getMinHeight = function(){

@@ -15,7 +15,8 @@ function SkyMaterial(name, scene, camera) {
     this.shader = new Shader('./shader/pass_through.vertex.fx',
                              './shader/sky.fragment.fx',
                              [],
-                             ['./shader/sphere_grid.include.fx']);
+                             ['./shader/sphere_grid.include.fx',
+                              './shader/phong.include.fx']);
 
     this.backFaceCulling = false;
     this._scene = scene;
@@ -43,6 +44,19 @@ SkyMaterial.prototype.isReady = function (mesh) {
     }
     defines.push('#define DEPTH 1.');
 
+    // Fog
+    if (this._scene.fogMode !== BABYLON.Scene.FOGMODE_NONE) {
+        defines.push("#define FOG");
+        if (this._scene.fogMode == BABYLON.Scene.FOGMODE_LINEAR){
+            defines.push("#define FOGMODE_LINEAR");
+        }else if (this._scene.fogMode == BABYLON.Scene.FOGMODE_EXP){
+            defines.push("#define FOGMODE_EXP");
+        }else if (this._scene.fogMode == BABYLON.Scene.FOGMODE_EXP2){
+            defines.push("#define FOGMODE_EXP2");
+        }
+    }
+
+
     var join = defines.join("\n");
     if (this._cachedDefines != join && this.shader.isReady)
     {
@@ -50,7 +64,7 @@ SkyMaterial.prototype.isReady = function (mesh) {
         this._effect = engine.createEffect({vertex: this.shader.vertexElem,
                                             fragment: this.shader.fragmentElem},
                                            [BABYLON.VertexBuffer.UVKind],
-                                           ['uDeltaPlayerPos',
+                                           ['uDeltaPlayerPos', 'uFogInfos',
                                             'uSunDirection', 'uSunLight', 'uSunColor',
                                             'uEarthRadius', 'uAtmosphereRadius', 'uDensity',
                                             'uBetaRayleigh', 'uBetaMie', 'uCloudHeight',
@@ -102,7 +116,11 @@ SkyMaterial.prototype.bind = function (world, mesh) {
     this._effect.setFloat('uCloudVerticalDepth', _config.sky.cloud.verticalDepth);
     this._effect.setFloat('uDensity', _config.sky.cloud.density);
 
-
+    // Fog
+    if (this._scene.fogMode !== BABYLON.Scene.FOGMODE_NONE) {
+        var fogFactor = 0.3;
+        this._effect.setFloat4('uFogInfos', this._scene.fogMode, this._scene.fogStart, this._scene.fogEnd, this._scene.fogDensity*fogFactor);
+    }
 
     if (this.cloudTexture) {
         this._effect.setTexture('uCloudSampler', this.cloudTexture);

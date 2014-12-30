@@ -64,7 +64,7 @@ function World_Config(){
 }
 
 function Player_Config(){
-    this.angle = 0.;
+    this.angle = Math.PI;
     this.position = new BABYLON.Vector3(0., 0., 0.);
     this.deltaPosition = new BABYLON.Vector3(0., 0., 0.);
     this.velocity = new BABYLON.Vector3(0., 0., 0.);
@@ -82,7 +82,7 @@ function Player_Config(){
 
 function Sky_Config(){
     this.params = {
-        sunDir: new BABYLON.Vector3(0.3, 0.3, -1.0),
+        sunDir: new BABYLON.Vector3(1., 0.3, 0.0),
         sunLight: new BABYLON.Vector3(1.0, 1.0, 1.0),
         sunColor: new BABYLON.Vector3(1.0, 1.0, 1.0),
         earthRadius: 6400.e3,
@@ -106,18 +106,19 @@ function Sky_Config(){
     };
 
     this.cloud = {
-        textureSize: 256,
+        heightSize: 512,
+        depthSize: 256,
 
         cloudHeight: 2000.,
         verticalDepth: 1000.,
         period: 100000.,
-        presence: 0.05,
+        presence: 0.1,
         density: 0.00055,
 
         shadowDarkness: 0.4,
         shadowHardness: 0.15,
 
-        velocity: 0.,//100.,
+        velocity: 0.,
         direction: new BABYLON.Vector2(-1., 0.)
     };
 

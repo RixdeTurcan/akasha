@@ -3,10 +3,15 @@ uniform float uPeriod;
 uniform float uCloudHeight;
 uniform float uPresence;
 
-float uShanonMargin = 0.5;
+float uShanonMargin = 1.0;
 
 #ifndef PI
   #define PI 3.14159265359
+#endif
+
+
+#ifdef NOISE_TEXTURE
+  uniform sampler2D uNoiseSampler;
 #endif
 
 varying vec2 vUv;
@@ -27,6 +32,8 @@ vec4 computeCloudPos(vec2 uv)
     return vec4(cloudPos, dirY);
 }
 
+
+
 float computeOctave(float amplitude, vec2 period, vec2 params, vec2 deltaPos)
 {
     //Detect if the noise frequency is greater than the sampling frequency
@@ -34,8 +41,39 @@ float computeOctave(float amplitude, vec2 period, vec2 params, vec2 deltaPos)
     float factorY = smoothstep(uShanonMargin/(2.*period.y), uShanonMargin/period.y, deltaPos.y);
 
     float factorPeriod = 10000.;
+    #ifndef NOISE_TEXTURE
+      return (1.-factorX)*(1.-factorY)*amplitude*pnoise(period*params, vec2(1., 1.)*uPeriod/factorPeriod);
+    #endif
+    #ifdef NOISE_TEXTURE
+      return (1.-factorX)*(1.-factorY)*amplitude*(-1.+2.*texture2D(uNoiseSampler, period*params*factorPeriod/uPeriod).r);
+    #endif
 
-    return (1.-factorX)*(1.-factorY)*amplitude*pnoise(period*params, vec2(1., 1.)*uPeriod/factorPeriod);
+}
+
+
+float getBumpNoise(vec3 pos, vec3 pos2)
+{
+  vec2 deltaPos = abs(pos.xz-pos2.xz);
+  vec2 params = 0.5*(pos.xz+pos2.xz) + uCloudPos;
+  float n = 0.;
+  float div = 0.;
+
+   n += computeOctave(1.5, vec2(0.0003, 0.0003), params, deltaPos);
+   div += 1.5;
+
+   n += computeOctave(1.5, vec2(0.0006, 0.0006), params, deltaPos);
+   div += 1.5;
+
+   n += computeOctave(1.6, vec2(0.0012, 0.0012), params, deltaPos);
+   div += 1.6;
+
+   n += computeOctave(1.3, vec2(0.0024, 0.0024), params, deltaPos);
+   div += 1.3;
+
+   n += computeOctave(0.8, vec2(0.0048, 0.0048), params, deltaPos);
+   div += 0.8;
+
+   return n/div;
 }
 
 vec2 getNoise(vec3 pos, vec3 pos2)
@@ -82,26 +120,6 @@ vec2 getNoise(vec3 pos, vec3 pos2)
   uniform sampler2D uSwapSampler;
 #endif
 
-vec2 pack(float a)
-{
-  vec2 b = vec2(0., 0.);
-  float step = 255.;
-
-  b.x = floor(a*step)/step;
-  b.y = (a-b.x)*step;
-
-  return b;
-}
-
-float unpack(vec2 a)
-{
-
-  float step = 255.;
-  float b = a.x + a.y / step;
-
-  return b;
-}
-
 void main(void) {
 
     vec4 cloudPos0 = computeCloudPos(vUv-INV_TEXTURE_SIZE);
@@ -117,20 +135,24 @@ void main(void) {
     vec2 data = getNoise(cloudPos0.xyz, cloudPos1.xyz);
 
 
+    float bump = 0.;
 
     #ifdef SWAP_TEXTURE
       #ifndef RESET
         vec4 tex = texture2D(uSwapSampler, 1.-vUv);
-        data.x += unpack(tex.rg)*2.-1.;
+        data.x += tex.r*2.-1.;
         data.y += tex.b;
       #endif
     #endif
     #ifdef END
       data.x = max(abs(data.x)*(1.0+uPresence)/data.y - uPresence, 0.);
       data.y = 0.;
+
+      bump = getBumpNoise(cloudPos0.xyz, cloudPos1.xyz);
+
     #else
       data.x = (data.x+1.)*0.5;
     #endif
 
-    gl_FragColor = vec4(pack(data.x), data.y, 1.);
+    gl_FragColor = vec4(data.x, bump, data.y, 1.);
 }

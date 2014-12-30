@@ -44,6 +44,24 @@ var getSamplingParameters = function (samplingMode, generateMipMaps, gl, enableT
     };
 };
 
+BABYLON.Engine.prototype.clear = function (color, backBuffer, depthStencil) {
+    this.applyStates();
+
+    //this._gl.clearColor(color.r, color.g, color.b, color.a !== undefined ? color.a : 1.0);
+   // if (this._depthCullingState.depthMask) {
+    //    this._gl.clearDepth(1.0);
+   // }
+   // var mode = 0;
+
+   // if (backBuffer)
+    //    mode |= this._gl.COLOR_BUFFER_BIT;
+
+    //if (depthStencil && this._depthCullingState.depthMask)
+    //    mode |= this._gl.DEPTH_BUFFER_BIT;
+
+    //this._gl.clear(mode);
+};
+
 BABYLON.Engine.prototype.createRenderTargetTexture = function (size, options) {
     // old version had a "generateMipMaps" arg instead of options.
     // if options.generateMipMaps is undefined, consider that options itself if the generateMipmaps value
