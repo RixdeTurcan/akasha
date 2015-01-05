@@ -222,100 +222,81 @@ Sky.prototype.update = function(){
         var cloudDeltaPosXY = _config.sky.cloud.direction.scale(_config.sky.cloud.velocity*_config.time);
         var cloudDeltaPos = new BABYLON.Vector3(cloudDeltaPosXY.x, 0., cloudDeltaPosXY.y);
 
-        var s = this.step%14;
-        if (s==0){
-            this.material.cloudSunDepthTexture = null;
-            this.material.cloudHeightTexture = this.cloudHeightTexture2;
-            this.material.cloudHeightTexture.material.octaveStart = 0;
-            this.material.cloudHeightTexture.material.octaveEnd = 6;
-            this.material.cloudHeightTexture.material.reset = true;
-            this.material.cloudHeightTexture.material.end = false;
 
-            this.lastPlayerPosComputed = _config.player.position.add(cloudDeltaPos);
-        }else if (s==1){
-            this.material.cloudSunDepthTexture = null;
-            this.material.cloudHeightTexture = this.cloudHeightTexture3;
-            this.material.cloudHeightTexture.material.octaveStart = 6;
-            this.material.cloudHeightTexture.material.octaveEnd = 6;
-            this.material.cloudHeightTexture.material.reset = false;
-            this.material.cloudHeightTexture.material.end = true;
 
-            this.lastPlayerPosComputed = _config.player.position.add(cloudDeltaPos);
-        }else if (s==2){
-            this.material.cloudSunDepthTexture = this.cloudSunDepthTexture;
+        var heightNb = 2;
+        var nbOctave = 12;
+        var offsetLast = 1;
+
+        var depthNb = 2;
+        var depthSize = 384;
+
+
+
+        var s = this.step%(heightNb+depthNb);
+        var t = s-heightNb;
+
+        if (s<heightNb){
+
+            this.material.cloudSunDepthTexture = null;
+
+            if (s==heightNb-1){
+                this.material.cloudHeightTexture = this.cloudHeightTexture3;
+            }else if ((s+heightNb)%2==0){
+                this.material.cloudHeightTexture = this.cloudHeightTexture2;
+            }else{
+                this.material.cloudHeightTexture = this.cloudHeightTexture;
+            }
+
+            if (s==0){
+                this.material.cloudHeightTexture.material.reset = true;
+            }else{
+                this.material.cloudHeightTexture.material.reset = false;
+            }
+
+            if (s==heightNb-1){
+                this.material.cloudHeightTexture.material.end = true;
+            }else{
+                this.material.cloudHeightTexture.material.end = false;
+            }
+
+            this.material.cloudHeightTexture.material.octaveStart = (nbOctave+offsetLast)*s/heightNb;
+            this.material.cloudHeightTexture.material.octaveEnd = (nbOctave+offsetLast)*(s+1)/heightNb;
+
+            if (s==heightNb-1){
+                this.material.cloudHeightTexture.material.octaveEnd = nbOctave;
+            }
+
+            if (s==heightNb-1){
+                this.lastPlayerPosComputed = _config.player.position.add(cloudDeltaPos);
+            }
+
+        }else{
+
             this.material.cloudHeightTexture = null;
-            this.material.cloudSunDepthTexture.material.stepStart = 0;
-            this.material.cloudSunDepthTexture.material.stepEnd = 15;
-            this.material.cloudSunDepthTexture.material.nbStepTotal = 180;
-            this.material.cloudSunDepthTexture.material.reset = true;
-        }else if (s==3){
-            this.material.cloudSunDepthTexture = this.cloudSunDepthTexture2;
-            this.material.cloudSunDepthTexture.material.stepStart = 15;
-            this.material.cloudSunDepthTexture.material.stepEnd = 30;
-            this.material.cloudSunDepthTexture.material.nbStepTotal = 180;
-            this.material.cloudSunDepthTexture.material.reset = false;
-        }else if (s==4){
-            this.material.cloudSunDepthTexture = this.cloudSunDepthTexture;
-            this.material.cloudSunDepthTexture.material.stepStart = 30;
-            this.material.cloudSunDepthTexture.material.stepEnd = 45;
-            this.material.cloudSunDepthTexture.material.nbStepTotal = 180;
-            this.material.cloudSunDepthTexture.material.reset = false;
-        }else if (s==5){
-            this.material.cloudSunDepthTexture = this.cloudSunDepthTexture2;
-            this.material.cloudSunDepthTexture.material.stepStart = 45;
-            this.material.cloudSunDepthTexture.material.stepEnd = 60;
-            this.material.cloudSunDepthTexture.material.nbStepTotal = 180;
-            this.material.cloudSunDepthTexture.material.reset = false;
-        }else if (s==6){
-            this.material.cloudSunDepthTexture = this.cloudSunDepthTexture;
-            this.material.cloudSunDepthTexture.material.stepStart = 60;
-            this.material.cloudSunDepthTexture.material.stepEnd = 75;
-            this.material.cloudSunDepthTexture.material.nbStepTotal = 180;
-            this.material.cloudSunDepthTexture.material.reset = false;
-        }else if (s==7){
-            this.material.cloudSunDepthTexture = this.cloudSunDepthTexture2;
-            this.material.cloudSunDepthTexture.material.stepStart = 75;
-            this.material.cloudSunDepthTexture.material.stepEnd = 90;
-            this.material.cloudSunDepthTexture.material.nbStepTotal = 180;
-            this.material.cloudSunDepthTexture.material.reset = false;
-        }else if (s==8){
-            this.material.cloudSunDepthTexture = this.cloudSunDepthTexture;
-            this.material.cloudSunDepthTexture.material.stepStart = 90;
-            this.material.cloudSunDepthTexture.material.stepEnd = 105;
-            this.material.cloudSunDepthTexture.material.nbStepTotal = 180;
-            this.material.cloudSunDepthTexture.material.reset = false;
-        }else if (s==9){
-            this.material.cloudSunDepthTexture = this.cloudSunDepthTexture2;
-            this.material.cloudSunDepthTexture.material.stepStart = 105;
-            this.material.cloudSunDepthTexture.material.stepEnd = 120;
-            this.material.cloudSunDepthTexture.material.nbStepTotal = 180;
-            this.material.cloudSunDepthTexture.material.reset = false;
-        }else if (s==10){
-            this.material.cloudSunDepthTexture = this.cloudSunDepthTexture;
-            this.material.cloudSunDepthTexture.material.stepStart = 120;
-            this.material.cloudSunDepthTexture.material.stepEnd = 135;
-            this.material.cloudSunDepthTexture.material.nbStepTotal = 180;
-            this.material.cloudSunDepthTexture.material.reset = false;
-        }else if (s==11){
-            this.material.cloudSunDepthTexture = this.cloudSunDepthTexture2;
-            this.material.cloudSunDepthTexture.material.stepStart = 135;
-            this.material.cloudSunDepthTexture.material.stepEnd = 150;
-            this.material.cloudSunDepthTexture.material.nbStepTotal = 180;
-            this.material.cloudSunDepthTexture.material.reset = false;
-        }else if (s==12){
-            this.material.cloudSunDepthTexture = this.cloudSunDepthTexture;
-            this.material.cloudSunDepthTexture.material.stepStart = 150;
-            this.material.cloudSunDepthTexture.material.stepEnd = 165;
-            this.material.cloudSunDepthTexture.material.nbStepTotal = 180;
-            this.material.cloudSunDepthTexture.material.reset = false;
-        }else if (s==13){
-            this.material.cloudSunDepthTexture = this.cloudSunDepthTexture3;
-            this.material.cloudSunDepthTexture.material.stepStart = 165;
-            this.material.cloudSunDepthTexture.material.stepEnd = 180;
-            this.material.cloudSunDepthTexture.material.nbStepTotal = 180;
-            this.material.cloudSunDepthTexture.material.reset = false;
 
-            this.lastPlayerPos = this.lastPlayerPosComputed.clone();
+            if (t==depthNb-1){
+                this.material.cloudSunDepthTexture = this.cloudSunDepthTexture3;
+            }else if ((t+depthNb)%2==0){
+                this.material.cloudSunDepthTexture = this.cloudSunDepthTexture;
+            }else{
+                this.material.cloudSunDepthTexture = this.cloudSunDepthTexture2;
+            }
+
+            if (t==0){
+                this.material.cloudSunDepthTexture.material.reset = true;
+            }else{
+                this.material.cloudSunDepthTexture.material.reset = false;
+            }
+
+            this.material.cloudSunDepthTexture.material.nbStepTotal = depthSize;
+            this.material.cloudSunDepthTexture.material.stepStart = t*depthSize/depthNb;
+            this.material.cloudSunDepthTexture.material.stepEnd = (t+1)*depthSize/depthNb;
+
+
+            if (t==depthNb-1){
+                this.lastPlayerPos = this.lastPlayerPosComputed.clone();
+            }
         }
 
         _config.sky.deltaPlayerPos = _config.player.position.subtract(this.lastPlayerPos).add(cloudDeltaPos);

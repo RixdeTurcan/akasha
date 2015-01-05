@@ -54,7 +54,7 @@ function World_Config(){
     this.fogMode = BABYLON.Scene.FOGMODE_EXP2;
     this.fogDensity = 0.00028;
 
-    this.realFps = 30.;
+    this.realFps = 60.;
     this.fps = this.realFps * 1.33;
     this.period = 1./this.fps;
     this.periodMs = 1000.*this.period;
