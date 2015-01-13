@@ -22,6 +22,10 @@ uniform float uClipHeight;
     #endif
   #endif
 
+  #ifdef DIFFUSE3
+    uniform sampler2D uDiffuse3Sampler;
+  #endif
+
   #ifdef BUMP
     #extension GL_OES_standard_derivatives : enable
     uniform vec2 uBumpInfos;
@@ -124,15 +128,17 @@ void main(void)
   float eyeToVertexDist = length(eyeToVertexDir);
   eyeToVertexDir = normalize(eyeToVertexDir);
 
-  vec2 diffuseUv = mod(vVertexPosInWorld.xz+uPlayerPos.xz, 200.)/200.;
+  vec2 diffuseUv = mod(vVertexPosInWorld.xz+uPlayerPos.xz, 90.)/90.;
   vec2 diffuseUv2 = mod(vVertexPosInWorld.xz+uPlayerPos.xz, 100.)/100.;
+  vec2 diffuseUv3 = mod(vVertexPosInWorld.xz+uPlayerPos.xz, 100.)/100.;
 
 
   #ifdef DIFFUSE2
-    float heightLimit = 90. + vDiffuseHeightOffset;
-    float heightThreshold = 60.;
-    float diffuseFactor = smoothstep(heightLimit-heightThreshold, heightLimit+heightThreshold, vVertexPosInWorld.y);
+    float heightLimit1 = 110. + vDiffuseHeightOffset;
+    float heightThreshold1 = 60.;
+    float diffuseFactor1 = smoothstep(heightLimit1-heightThreshold1, heightLimit1+heightThreshold1, vVertexPosInWorld.y);
   #endif
+
 
   vec3 normal = vNormal;
   #ifdef BUMP
@@ -143,11 +149,18 @@ void main(void)
       vec3 bumpTex2 = texture2D(uBump2Sampler, diffuseUv).rgb;
       vec3 normal2 = perturbNormal(eyeToVertexDir, normal, bumpTex2, diffuseUv2);
 
-      normal = mix(normal1, normal2, diffuseFactor);
+      normal = mix(normal1, normal2, diffuseFactor1);
     #else
       normal = normal1;
     #endif
 
+  #endif
+
+  #ifdef DIFFUSE3
+    float heightLimit2 = 800. + vDiffuseHeightOffset;
+    float heightThreshold2 = 200.;
+    float slopeFactor = max(dot(normal, vec3(0., 1., 0.)), smoothstep(800., 1300., vVertexPosInWorld.y));
+    float diffuseFactor2 = slopeFactor*slopeFactor*smoothstep(heightLimit2-heightThreshold2, heightLimit2+heightThreshold2, vVertexPosInWorld.y);
   #endif
 
   //Compute the sky color
@@ -165,10 +178,14 @@ void main(void)
     vec3 diffuseColor = texture2D(uDiffuseSampler, diffuseUv).rgb;
 
     #ifdef DIFFUSE2
-      diffuseColor = mix(diffuseColor, texture2D(uDiffuse2Sampler, diffuseUv2).rgb, diffuseFactor);
+      diffuseColor = mix(diffuseColor, texture2D(uDiffuse2Sampler, diffuseUv2).rgb, diffuseFactor1);
     #endif
 
-    color += diffuseColor*(0.5+0.5*dot(vNormal, vec3(1., 0.4, 1.)));
+    #ifdef DIFFUSE3
+      diffuseColor = mix(diffuseColor, texture2D(uDiffuse3Sampler, diffuseUv3).rgb, diffuseFactor2);
+    #endif
+
+    color += diffuseColor*(0.7+0.5*dot(vNormal, vec3(1., 0.3, 0.)));
   #endif
 
   //Compute the fog color

@@ -1,11 +1,13 @@
 function Test(number)
 {
-    this.RTTPrinterSize = 512;
+    this.RTTPrinterSize = 256;
     this.RTTBinded = false;
 
     this.skytest = {};
     this.addTest('Sky', 1);
     this.addTest('Cloud', 2);
+    this.addTest('Ground', 3);
+    this.addTest('Water', 4);
 
 
     this.startTest(number);
@@ -24,7 +26,136 @@ Test.prototype.startTest = function(num){
       this.startSkyTest();
     }else if (num == 2){
       this.startCloudTest();
+    }else if (num == 3){
+      this.startGroundTest();
+    }else if (num == 4){
+      this.startWaterTest();
     }
+}
+
+Test.prototype.startWaterTest = function(){
+
+    //Build the world
+    this.skytest.world = new World($('#canvas'));
+    this.skytest.camera = new Camera(CameraType_ArcRotate, new BABYLON.Vector3(0, 150, 0));
+    this.skytest.player = new Player(this.skytest.camera);
+
+    this.skytest.camera.activate();
+    this.skytest.camera.enableControl();
+
+    //Add a sky
+    this.skytest.sky = new Sky(this.skytest.camera, true);
+
+
+    //Add a wireframe grid ground
+    this.skytest.groundWire = new BABYLON.Mesh.CreateGround("groundWire", 20000, 20000, 255,
+                                                       this.skytest.world.scene, false);
+    this.skytest.groundWire.dontLog = true;
+    this.skytest.groundWire.material = new BABYLON.StandardMaterial("groundWireMat",
+                                                                this.skytest.world.scene);
+    this.skytest.groundWire.material.wireframe = true;
+    this.skytest.groundWire.material.alpha = 0.2;
+    this.skytest.groundWire.material.diffuseColor = new BABYLON.Color3(0.5, 0.5, 0.5);
+    this.skytest.groundWire.material.specularColor = new BABYLON.Color3(0.0, 0.0, 0.0);
+
+
+    //Add the ground
+    this.skytest.ground = new Ground(this.skytest.camera, this.skytest.sky.light);
+    this.skytest.ground.addSkyTexture(this.skytest.sky.renderTexture);
+
+    //Add the water
+    this.skytest.ocean = new Ocean(this.skytest.camera);
+    //this.skytest.ocean.addReflectionMesh(this.skytest.ground.meshLowDef, this.skytest.ground.reflectionMaterial);
+
+    //this.skytest.ocean.addRefractionMesh(this.skytest.ground.meshLowDefRefraction);
+
+    //this.skytest.ocean.addSeabedMesh(this.skytest.ground.meshLowDef, this.skytest.ground.seabedMaterial);
+
+    //this.skytest.ocean.addCollisionMesh(this.skytest.ground.meshLowDef, this.skytest.ground.foamShoreMaterial);
+
+    this.skytest.ocean.addSkyTexture(this.skytest.sky.renderTexture);
+    this.skytest.ocean.addCloudTexture(this.skytest.sky.cloudSunDepthTexture3);
+
+
+    //Add control panel
+    this.createSkyTestControlPanel();
+    this.createSkyTestProfiler();
+    this.createGroundTestRTTPrinter();
+
+    //Render loop
+    this.skytest.world.startRendering(function(){
+        this.skytest.player.update();
+        this.skytest.camera.update();
+        this.skytest.world.update();
+        this.skytest.sky.update();
+        this.skytest.ground.update();
+        this.skytest.ocean.update();
+
+        this.printRTT(this.rttTextureToRender);
+
+
+        if (this.skytest.world.scene.getAnimationRatio()){
+            _config.dt = 0.01 * this.skytest.world.scene.getAnimationRatio();
+            _config.time += _config.dt;
+            _config.step += 1;
+        }
+
+    }.bind(this));
+}
+
+Test.prototype.startGroundTest = function(){
+
+    //Build the world
+    this.skytest.world = new World($('#canvas'));
+    this.skytest.camera = new Camera(CameraType_ArcRotate, new BABYLON.Vector3(0, 150, 0));
+    this.skytest.player = new Player(this.skytest.camera);
+
+    this.skytest.camera.activate();
+    this.skytest.camera.enableControl();
+
+    //Add a sky
+    this.skytest.sky = new Sky(this.skytest.camera, true);
+
+
+    //Add a wireframe grid ground
+    this.skytest.groundWire = new BABYLON.Mesh.CreateGround("groundWire", 20000, 20000, 255,
+                                                       this.skytest.world.scene, false);
+    this.skytest.groundWire.dontLog = true;
+    this.skytest.groundWire.material = new BABYLON.StandardMaterial("groundWireMat",
+                                                                this.skytest.world.scene);
+    this.skytest.groundWire.material.wireframe = true;
+    this.skytest.groundWire.material.alpha = 0.2;
+    this.skytest.groundWire.material.diffuseColor = new BABYLON.Color3(0.5, 0.5, 0.5);
+    this.skytest.groundWire.material.specularColor = new BABYLON.Color3(0.0, 0.0, 0.0);
+
+
+    //Add the ground
+    this.skytest.ground = new Ground(this.skytest.camera, this.skytest.sky.light);
+    this.skytest.ground.addSkyTexture(this.skytest.sky.renderTexture);
+
+    //Add control panel
+    this.createSkyTestControlPanel();
+    this.createSkyTestProfiler();
+    this.createGroundTestRTTPrinter();
+
+    //Render loop
+    this.skytest.world.startRendering(function(){
+        this.skytest.player.update();
+        this.skytest.camera.update();
+        this.skytest.world.update();
+        this.skytest.sky.update();
+        this.skytest.ground.update();
+
+        this.printRTT(this.rttTextureToRender);
+
+
+        if (this.skytest.world.scene.getAnimationRatio()){
+            _config.dt = 0.01 * this.skytest.world.scene.getAnimationRatio();
+            _config.time += _config.dt;
+            _config.step += 1;
+        }
+
+    }.bind(this));
 }
 
 Test.prototype.startCloudTest = function(){
@@ -137,6 +268,25 @@ Test.prototype.createSkyTestProfiler = function(){
         }
         _showFps = !_showFps;
     }.bind(this));
+}
+
+Test.prototype.createGroundTestRTTPrinter = function(){
+    this.initRTTPrinter();
+   this.initControlPanelSection(this.$rttPanel, this.$rttTitle, 'None');
+    this.startControlPanel(this.$rttPanel);
+
+    var f = function(name){
+        this.RTTBinded = true;
+        {
+            this.rttTextureToRender.material.texture = null;
+            this.RTTBinded = false;
+        }
+    }.bind(this)
+
+    this.$rttPanel.on("tabsactivate", function(e, ui){
+        f(ui.newTab.children().html());
+    });
+    f("None");
 }
 
 Test.prototype.createCloudTestRTTPrinter = function(){
@@ -264,7 +414,6 @@ Test.prototype.initRTTPrinter = function(){
     this.$rttcanvas[0].width = this.RTTPrinterSize;
     this.$rttcanvas[0].height = this.RTTPrinterSize;
     this.rttCtx = this.$rttcanvas[0].getContext("2d");
-
 
     this.rttTextureToRender = new BABYLON.RenderTargetTexture("RTTTEx", this.RTTPrinterSize,
                                                               _config.world.scene, false);

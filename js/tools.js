@@ -14,6 +14,8 @@ function warning(text){
     }
 }
 
+Number.prototype.mod = function(n){ return ((this%n)+n)%n; }
+
 function sign(x) { return x > 0 ? 1 : -1; }
 
 function onReady(elem, func, refreshTime)
@@ -537,8 +539,289 @@ function createGrid(name, subdivisions, uvXMin, uvXMax, uvYMin, uvYMax, scene, u
     return ground;
 }
 
+function createLodGrid(name, unitSize, nbUnit, finalNbUnit, nbLod, lodMin,
+                       beta, betaRange, betaCenterDist, distMin,
+                       scene, updatable)
+{
+    var transitionSizeBot = 1;
+    var transitionSizeTop = 2;
+
+    beta = beta%(2*_pi);
+    if (beta>_pi){
+        beta -= 2*_pi;
+    }
+
+    var positions = [];
+    var indices = [];
+
+    //Number of points in a square of radius r
+    var n = function(r){
+        return 4*r*r+4*r+1;
+    }
+
+    //Number of points in a square of radius r and lod l
+    var N = function(r, l){
+        if (l==0){
+            return 0;
+        }else if (l==1){
+            return n(r);
+        }else{
+            var lMin = parseInt(nbUnit/2-transitionSizeTop);
+            var t = n(nbUnit+transitionSizeBot);
+
+            for(var m=2; m<l; m++){
+                t += n(nbUnit+transitionSizeBot) - n(lMin)
+            }
+
+            t += n(r) - n(lMin);
+
+            return t;
+        }
+    }
+
+    //Position of a point i in the ring of radius r and lod l
+    var p = function(i, r, l){
+        if (r==0){
+            return 0;
+        }else{
+            return N(r-1, l)+i%(8*r);
+        }
+    }
+
+    //Push the indices of a normal square
+    var f4 = function(a0, a1, b0, b1, invert){
+        if (!invert){
+            indices.push(a0, a1, b0);
+            indices.push(b0, a1, b1);
+        }else{
+            indices.push(a0, a1, b1);
+            indices.push(b0, a0, b1);
+        }
+    }
+
+    //Push the indices of a corner square
+    var f4s = function(a0, b0, b1, b2, invert){
+        if (!invert){
+            indices.push(a0, b0, b2);
+            indices.push(b1, b0, b2);
+        }else{
+            indices.push(a0, b0, b1);
+            indices.push(b1, a0, b2);
+        }
+    }
+
+    //Push the indices of a transition square
+    var f5 = function(a0, a1, a2, b0, b1, invert){
+        if (!invert){
+            indices.push(a0, a1, b0);
+            indices.push(a1, a2, b0);
+            indices.push(a2, b1, b0);
+
+            indices.push(a0, a2, b0);
+
+        }else{
+            indices.push(a0, b0, b1);
+            indices.push(a0, a1, b1);
+            indices.push(a1, a2, b1);
+
+            indices.push(a0, a2, b1);
+        }
+    }
 
 
+    positions.push(0., 0., 0.);
+
+    for (var l = 1; l <= nbLod; l++){
+        var s = unitSize * Math.pow(2, l-1);
+        var radiusMin = 1;
+        var radiusMax = nbUnit+transitionSizeBot;
+        if (l>1){
+            radiusMin = parseInt(nbUnit/2+1-transitionSizeTop);
+        }
+        if (l==nbLod){
+            var radiusMax = finalNbUnit;
+        }
+
+        for(var r = radiusMin; r <= radiusMax; r++){
+            var factor = Math.min(1., (r-radiusMin)/(radiusMax-radiusMin));
+            var s3 = Math.floor(s*(1.5+1.5*Math.pow(factor, 2.)));
+            var s2 = s/1000.+s3;
+
+            for(var j = 0; j < r; j++){
+                positions.push(j*s,
+                               s2,
+                               r*s);
+            }
+            for(var j = 0; j < 2*r; j++){
+                positions.push(r*s,
+                               s2,
+                               (r-j)*s);
+            }
+            for(var j = 0; j < 2*r; j++){
+                positions.push((r-j)*s,
+                               s2,
+                               -r*s);
+            }
+            for(var j = 0; j < 2*r; j++){
+                positions.push(-r*s,
+                               s2,
+                               (-r+j)*s);
+            }
+            for(var j = 0; j < r; j++){
+                positions.push((-r+j)*s,
+                               s2,
+                               r*s);
+            }
+
+            //Triangles
+            if (l>1 && r == radiusMin){/*
+                for(var j = 0; j < r-1; j++){
+                    f5(p(2*j  , radiusMax, l-1),
+                       p(2*j+1, radiusMax, l-1),
+                       p(2*j+2, radiusMax, l-1),
+                       p(j    , r, l),
+                       p(j+1  , r, l));
+                }
+                f4s(p(2*r-2, radiusMax, l-1),
+                    p(r-1  , r, l),
+                    p(r    , r, l),
+                    p(r+1  , r, l));
+                for(var j = 0; j < 2*r-2; j++){
+                    f5(p(2*r+2*j-2, radiusMax, l-1),
+                       p(2*r+2*j-1, radiusMax, l-1),
+                       p(2*r+2*j  , radiusMax, l-1),
+                       p(r+j+1    , r, l),
+                       p(r+j+2    , r, l), true);
+                }
+                f4s(p(6*r-6, radiusMax, l-1),
+                    p(3*r-1, r, l),
+                    p(3*r  , r, l),
+                    p(3*r+1, r, l), true);
+                for(var j = 0; j < 2*r-2; j++){
+                    f5(p(6*r+2*j-6, radiusMax, l-1),
+                       p(6*r+2*j-5, radiusMax, l-1),
+                       p(6*r+2*j-4, radiusMax, l-1),
+                       p(3*r+j+1  , r, l),
+                       p(3*r+j+2  , r, l));
+                }
+                f4s(p(10*r-10, radiusMax, l-1),
+                    p(5*r-1  , r, l),
+                    p(5*r    , r, l),
+                    p(5*r+1  , r, l));
+                for(var j = 0; j < 2*r-2; j++){
+                    f5(p(10*r+2*j-10, radiusMax, l-1),
+                       p(10*r+2*j-9 , radiusMax, l-1),
+                       p(10*r+2*j-8 , radiusMax, l-1),
+                       p(5*r+j+1   , r, l),
+                       p(5*r+j+2   , r, l), true);
+                }
+                f4s(p(14*r-14, radiusMax, l-1),
+                    p(7*r-1  , r, l),
+                    p(7*r    , r, l),
+                    p(7*r+1  , r, l), true);
+                for(var j = 0; j < r-1; j++){
+                    f5(p(14*r+2*j-14, radiusMax, l-1),
+                       p(14*r+2*j-13, radiusMax, l-1),
+                       p(14*r+2*j-12, radiusMax, l-1),
+                       p(7*r+j+1   , r, l),
+                       p(7*r+j+2   , r, l));
+                }*/
+            }else{
+                for(var j = 0; j < r-1; j++){
+                    f4(p(j  , r-1, l),
+                       p(j+1, r-1, l),
+                       p(j  , r, l),
+                       p(j+1, r, l));
+                }
+                f4s(p(r-1, r-1, l),
+                    p(r-1, r, l),
+                    p(r  , r, l),
+                    p(r+1, r, l));
+                for(var j = 0; j < 2*r-2; j++){
+                    f4(p(r+j-1, r-1, l),
+                       p(r+j  , r-1, l),
+                       p(r+j+1, r, l),
+                       p(r+j+2, r, l), true);
+                }
+                f4s(p(3*r-3, r-1, l),
+                    p(3*r-1, r, l),
+                    p(3*r  , r, l),
+                    p(3*r+1, r, l), true);
+                for(var j = 0; j < 2*r-2; j++){
+                    f4(p(3*r+j-3, r-1, l),
+                       p(3*r+j-2, r-1, l),
+                       p(3*r+j+1, r, l),
+                       p(3*r+j+2, r, l));
+                }
+                f4s(p(5*r-5, r-1, l),
+                    p(5*r-1, r, l),
+                    p(5*r  , r, l),
+                    p(5*r+1, r, l));
+                for(var j = 0; j < 2*r-2; j++){
+                    f4(p(5*r+j-5, r-1, l),
+                       p(5*r+j-4, r-1, l),
+                       p(5*r+j+1, r, l),
+                       p(5*r+j+2, r, l), true);
+                }
+                f4s(p(7*r-7, r-1, l),
+                    p(7*r-1, r, l),
+                    p(7*r  , r, l),
+                    p(7*r+1, r, l), true);
+                for(var j = 0; j < r-1; j++){
+                    f4(p(7*r+j-7, r-1, l),
+                       p(7*r+j-6, r-1, l),
+                       p(7*r+j+1, r, l),
+                       p(7*r+j+2, r, l));
+                }
+            }
+        }
+    }
+    //clip the grid
+    var isInFrustrum = function(x, z){
+        x -= Math.cos(beta)*betaCenterDist;
+        z -= Math.sin(beta)*betaCenterDist;
+
+        var angle = Math.atan2(z, x);
+        var distAngle = Math.min(Math.abs(angle+beta), Math.abs(angle-beta));
+
+        var dist = x*Math.cos(beta)+z*Math.sin(beta);
+
+        return (distAngle<betaRange && dist>distMin);
+    }
+
+    var positionsClamped = [];
+    var positionToPositionClamped = [];
+    {
+        var s = parseInt(positions.length/3);
+        var j = 0;
+        for(var i=0; i<s; i++){
+            if (isInFrustrum(positions[3*i], positions[3*i+2])){
+                positionsClamped.push(positions[3*i], positions[3*i+1], positions[3*i+2]);
+                positionToPositionClamped[i] = j;
+                j++;
+            }
+        }
+    }
+    var indicesClamped = [];
+    {
+        var s = parseInt(indices.length/3);
+        for(var i=0; i<s; ++i){
+            if ( positionToPositionClamped[indices[3*i]]!==undefined
+              && positionToPositionClamped[indices[3*i+1]]!==undefined
+              && positionToPositionClamped[indices[3*i+2]]!==undefined
+            ){
+                indicesClamped.push(positionToPositionClamped[indices[3*i]],
+                                    positionToPositionClamped[indices[3*i+1]],
+                                    positionToPositionClamped[indices[3*i+2]]);
+            }
+        }
+    }
+    var ground = new BABYLON.Mesh(name, scene);
+    ground.setVerticesData(BABYLON.VertexBuffer.PositionKind, positionsClamped, updatable);
+    ground.setIndices(indicesClamped);
+    //console.log(Math.round(Math.sqrt(positionsClamped.length/3))+"^2");
+    return ground;
+}
 
 
 

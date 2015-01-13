@@ -5,12 +5,26 @@ function Ground(camera, light){
     this.camera = camera;
     this.light = light;
 
-    var scaling = 1.;
-    this.mesh = createGrid("ground", _config.ground.sampling.grid-1,
-                           0., 1., 0., 1.,
-                           _config.world.scene, false,
-                           1., scaling, 1./scaling);
+    this.nbQuadrant = 40;
+    this.mesh = [];
+    this.material = new GroundMaterial("GroundMaterial", _config.world.scene, this);
+    this.meshToDisplay = 0;
 
+    for(var i = 0; i < this.nbQuadrant; i++){
+        var beta = 2.*_pi*i/this.nbQuadrant;
+        var betaRange = _pi/4.9; //Max 5.5
+        this.mesh[i] = createLodGrid("ground"+i, 20., 100, 100, 4, 1,
+                                     beta+_pi, betaRange, -500., 500.,
+                                     _config.world.scene, false);
+        this.mesh[i].material = new BABYLON.MultiMaterial("groundMultiMat", _config.world.scene);
+        this.mesh[i].subMeshes = [];
+        addMaterialToMesh(this.material, this.mesh[i], false, false);
+        this.mesh[i].isInFrustum = function(){return true;};
+        this.mesh[i].subMeshes[0].isInFrustum = function(){return true;};
+        this.mesh[i].subMeshes[0].isHiddenScreen = true;
+    }
+
+    var scaling = 1.;
     this.meshLowDef = createGrid("ground", parseInt(_config.ground.sampling.gridLowDef)-1,
                            0., 1., 0., 1.,
                            _config.world.scene, false,
@@ -18,12 +32,6 @@ function Ground(camera, light){
     this.meshLowDef.subMeshes = [];
     this.meshLowDef.material = null;
 
-    this.material = new GroundMaterial("GroundMaterial", _config.world.scene, this);
-    this.mesh.material = new BABYLON.MultiMaterial("groundMultiMat", _config.world.scene);
-    this.mesh.subMeshes = [];
-    addMaterialToMesh(this.material, this.mesh, false, false);
-    this.mesh.isInFrustum = function(){return true;};
-    this.mesh.subMeshes[0].isInFrustum = function(){return true;};
 
 
     this.meshLowDefRefraction = createGrid("ground", parseInt(_config.ground.sampling.gridLowDef)-1,
@@ -37,25 +45,11 @@ function Ground(camera, light){
     this.meshLowDefRefraction.isInFrustum = function(){return true;};
     this.meshLowDefRefraction.subMeshes[0].isInFrustum = function(){return true;};
 
-    //Height
-    this.heightTexture = createRenderTargetTexture('heightTexture',
-                                                   _config.ground.sampling.height,
-                                                   _config.world.scene,
-                                                   {
-                                                       generateMipMaps: false,
-                                                       enableTextureFloat: true,
-                                                       generateDepthBuffer: false
-                                                   },
-                                                   new GroundHeightMaterial('groundHeightMaterial',
-                                                                            this.material,
-                                                                            _config.world.scene),
-                                                   this.material,
-                                                   "passthrough");
-    this.heightTexture.material.textureSize = _config.ground.sampling.height;
-    this.heightTexture.material.projectedGrid = this.material.projectedGrid;
-    this.material.heightTexture.wrapU = BABYLON.Texture.CLAMP_ADDRESSMODE;
-    this.material.heightTexture.wrapV = BABYLON.Texture.CLAMP_ADDRESSMODE;
-
+    //Noise texture
+    this.noiseTexture = new BABYLON.Texture("asset/noise.png", _config.world.scene);
+    this.noiseTexture.wrapU = BABYLON.Texture.WRAP_ADDRESSMODE;
+    this.noiseTexture.wrapV = BABYLON.Texture.WRAP_ADDRESSMODE;
+    this.material.noiseTexture = this.noiseTexture;
 
     //diffuse 1
     this.material.diffuseTexture = new BABYLON.Texture("asset/sand.jpg",
@@ -69,6 +63,13 @@ function Ground(camera, light){
     this.material.diffuseTexture2.wrapU = BABYLON.Texture.WRAP_ADDRESSMODE;
     this.material.diffuseTexture2.wrapV = BABYLON.Texture.WRAP_ADDRESSMODE;
 
+    //diffuse 3
+    this.material.diffuseTexture3 = new BABYLON.Texture("asset/snow.jpg",
+                                                        _config.world.scene);
+    this.material.diffuseTexture3.wrapU = BABYLON.Texture.WRAP_ADDRESSMODE;
+    this.material.diffuseTexture3.wrapV = BABYLON.Texture.WRAP_ADDRESSMODE;
+
+
     //Reflection
     this.reflectionMaterial = new ReflectionGroundMaterial("ReflectionGround",
                                                            _config.world.scene,
@@ -76,6 +77,7 @@ function Ground(camera, light){
     this.reflectionMaterial.heightTexture = this.material.heightTexture;
     this.reflectionMaterial.diffuseTexture = this.material.diffuseTexture;
     this.reflectionMaterial.diffuseTexture2 = this.material.diffuseTexture2;
+    this.reflectionMaterial.diffuseTexture3 = this.material.diffuseTexture3;
     this.reflectionMaterial.projectedGrid = this.material.projectedGrid;
 
     //Seabed
@@ -174,5 +176,9 @@ Ground.prototype.update = function()
 
     this.shadowHeightTexture.material.deltaPos = this.shadowMapPreviousPos.scale(-1);
     this.shadowTexture.material.deltaPos = this.shadowMapPreviousPos.scale(-1);
+
+    this.mesh[this.meshToDisplay].subMeshes[0].isHiddenScreen = true;
+    this.meshToDisplay = Math.round((_config.player.angle.mod(2.*_pi))/(2.*_pi/this.nbQuadrant)).mod(this.nbQuadrant);
+    this.mesh[this.meshToDisplay].subMeshes[0].isHiddenScreen = false;
 
 }

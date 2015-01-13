@@ -42,7 +42,7 @@ float computeOctave(float amplitude, vec2 period, vec2 params, vec2 deltaPos)
 
     float factorPeriod = 10000.;
     #ifndef NOISE_TEXTURE
-      return (1.-factorX)*(1.-factorY)*amplitude*pnoise(period*params, vec2(1., 1.)*uPeriod/factorPeriod);
+      return 0.;//(1.-factorX)*(1.-factorY)*amplitude*pnoise(period*params, vec2(1., 1.)*uPeriod/factorPeriod);
     #endif
     #ifdef NOISE_TEXTURE
       return (1.-factorX)*(1.-factorY)*amplitude*(-1.+2.*texture2D(uNoiseSampler, period*params*factorPeriod/uPeriod).r);

@@ -38,7 +38,7 @@ function Camera_Config(){
     this.lowerBetaLimit = _pi/2-_pi/4.5;
     this.radiusScaleFactor = 1.;
     this.minRadius = 0.0001;
-    this.maxZ = 5000;
+    this.maxZ = 50000;
 }
 
 function World_Config(){
@@ -52,9 +52,9 @@ function World_Config(){
     this.viewMat = new BABYLON.Matrix();
 
     this.fogMode = BABYLON.Scene.FOGMODE_EXP2;
-    this.fogDensity = 0.00028;
+    this.fogDensity = 0.0001;
 
-    this.realFps = 60.;
+    this.realFps = 30.;
     this.fps = this.realFps * 1.33;
     this.period = 1./this.fps;
     this.periodMs = 1000.*this.period;
@@ -70,9 +70,9 @@ function Player_Config(){
     this.velocity = new BABYLON.Vector3(0., 0., 0.);
     this.acceleration = new BABYLON.Vector3(0., 0., 0.);
 
-    this.maxAcceleration = 2000.;
-    this.maxVelocity = 800.;
-    this.minVelocity = 10.;
+    this.maxAcceleration = 7000.;
+    this.maxVelocity = 3000.;
+    this.minVelocity = 50.;
 
     this.keyUpCode = 90;
     this.keyDownCode = 83;
@@ -142,7 +142,7 @@ function Ocean_Config(){
         skyReflectionFactor: 0.,
         skyReflectionAbsorbtion: 0.8,
 
-        horizonDist: 5000.,
+        horizonDist: 50000.,
         turbidityFactor: 0.0085,
 
         shanonMargin: 0.5,

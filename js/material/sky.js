@@ -118,8 +118,7 @@ SkyMaterial.prototype.bind = function (world, mesh) {
 
     // Fog
     if (this._scene.fogMode !== BABYLON.Scene.FOGMODE_NONE) {
-        var fogFactor = 0.3;
-        this._effect.setFloat4('uFogInfos', this._scene.fogMode, this._scene.fogStart, this._scene.fogEnd, this._scene.fogDensity*fogFactor);
+        this._effect.setFloat4('uFogInfos', this._scene.fogMode, this._scene.fogStart, this._scene.fogEnd, this._scene.fogDensity);
     }
 
     if (this.cloudTexture) {

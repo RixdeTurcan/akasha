@@ -35,6 +35,22 @@ GroundHeightMaterial.prototype.isReady = function (mesh) {
 
     defines.push('#define INV_TEXTURE_SIZE '+(1./this.textureSize));
 
+    if (this.noiseTexture) {
+        if (!this.noiseTexture.isReady()) {
+            return false;
+        } else {
+            defines.push('#define NOISE_TEXTURE');
+        }
+    }
+
+    if (this.gridDataTexture) {
+        if (!this.gridDataTexture.isReady()) {
+            return false;
+        } else {
+            defines.push('#define GRID_DATA ');
+        }
+    }
+
     var join = defines.join('\n');
     if (this._cachedDefines != join && this.shader.isReady)
     {
@@ -45,7 +61,7 @@ GroundHeightMaterial.prototype.isReady = function (mesh) {
                                            ['uEyePosInWorld', 'uPlayerPos',
                                             'uMinPosLeft', 'uMinPosRight',
                                             'uMaxPosLeft', 'uMaxPosRight'],
-                                           ['uNoiseSampler'],
+                                           ['uNoiseSampler', 'uGridDataSampler'],
                                            join);
     }
     if (!this._effect || !this._effect.isReady()) {
@@ -74,8 +90,11 @@ GroundHeightMaterial.prototype.bind = function (world, mesh) {
     this._effect.setVector3('uMaxPosLeft', this.projectedGrid.maxPosLeft);
     this._effect.setVector3('uMaxPosRight', this.projectedGrid.maxPosRight);
 
-    if (this.noiseTexture && this.noiseTexture.isRenderTarget) {
+    if (this.noiseTexture) {
         this._effect.setTexture("uNoiseSampler", this.noiseTexture);
+    }
+    if (this.gridDataTexture) {
+        this._effect.setTexture("uGridDataSampler", this.gridDataTexture);
     }
 };
 

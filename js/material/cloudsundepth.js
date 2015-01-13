@@ -64,6 +64,13 @@ CloudSunDepthMaterial.prototype.isReady = function (mesh) {
             defines.push('#define SWAP_TEXTURE');
         }
     }
+    if (this.cloudHeightTexture) {
+        if (!this.cloudHeightTexture.isReady()) {
+            return false;
+        } else {
+            defines.push('#define HEIGHT');
+        }
+    }
 
     var join = defines.join("\n");
     if (this._cachedDefines != join && this.shader.isReady)

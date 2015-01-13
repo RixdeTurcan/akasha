@@ -8,7 +8,7 @@ function GroundMaterial(name, scene, ground) {
     this._scaledSpecular = new BABYLON.Color3()
 
     this.projectedGrid = new ProjectedGrid(this.ground.camera);
-    this.projectedGrid.marginY = 2.5;
+    this.projectedGrid.marginY = 3.;
     this.projectedGrid.marginX = 2.;
     this.projectedGrid.horizonFactor = 0.99;
 
@@ -16,6 +16,11 @@ function GroundMaterial(name, scene, ground) {
     this._lightMatrix = BABYLON.Matrix.Zero();
 
     this.wireframe = false;
+    _$body.keypress(function(e){
+        this.wireframe = e.which==119?!this.wireframe:this.wireframe;
+        console.log(this.wireframe);
+    }.bind(this));
+
 
     this.shader = new Shader('./shader/ground.vertex.fx',
                              './shader/ground.fragment.fx',
@@ -46,8 +51,8 @@ GroundMaterial.prototype.needAlphaTesting = function () {
 GroundMaterial.prototype.getRenderTargetTextures = function () {
     this._renderTargets.reset();
 
-    if (this.heightTexture && this.heightTexture.isRenderTarget) {
-        this._renderTargets.push(this.heightTexture);
+    if (this.noiseTexture && this.noiseTexture.isRenderTarget) {
+        this._renderTargets.push(this.noiseTexture);
     }
 
     if (this.shadowHeightTexture && this.shadowHeightTexture.isRenderTarget) {
@@ -66,11 +71,11 @@ GroundMaterial.prototype.isReady = function (mesh) {
     var engine = this._scene.getEngine();
     var defines = [];
 
-    if (this.heightTexture) {
-        if (!this.heightTexture.isReady()) {
+    if (this.noiseTexture) {
+        if (!this.noiseTexture.isReady()) {
             return false;
         } else {
-            defines.push("#define HEIGHT");
+            defines.push("#define NOISE_TEXTURE");
         }
     }
 
@@ -87,6 +92,14 @@ GroundMaterial.prototype.isReady = function (mesh) {
             return false;
         } else {
             defines.push("#define DIFFUSE2");
+        }
+    }
+
+    if (this.diffuseTexture3) {
+        if (!this.diffuseTexture3.isReady()) {
+            return false;
+        } else {
+            defines.push("#define DIFFUSE3");
         }
     }
 
@@ -114,15 +127,14 @@ GroundMaterial.prototype.isReady = function (mesh) {
         this._cachedDefines = join;
         this._effect = engine.createEffect({vertex: this.shader.vertexElem,
                                             fragment: this.shader.fragmentElem},
-                                           [BABYLON.VertexBuffer.UVKind],
+                                           [BABYLON.VertexBuffer.PositionKind],
                                            ['uViewProjection', 'uEyePosInWorld',
                                            'uBumpInfos', 'uBump2Infos',
                                            'uClipHeight',
                                            'uFogInfos', 'uFogColor', 'uVerticalShift',
                                            'uTangentScreenDist', 'uPlayerPos', "uClipPlane"],
-                                           ['uHeightSampler', 'uSkySampler',
-                                            'uDiffuseSampler',
-                                            'uDiffuse2Sampler'],
+                                           ['uNoiseSampler', 'uSkySampler',
+                                            'uDiffuseSampler', 'uDiffuse2Sampler', 'uDiffuse3Sampler'],
                                            join);
     }
 
@@ -135,10 +147,6 @@ GroundMaterial.prototype.isReady = function (mesh) {
 
 GroundMaterial.prototype.unbind = function ()
 {
-    if (this.heightTexture && this.heightTexture.isRenderTarget) {
-        this._effect.setTexture("uHeightSampler", null);
-    }
-
     if (this.skyTexture && this.skyTexture.isRenderTarget) {
         this._effect.setTexture("uSkySampler", null);
     }
@@ -157,9 +165,10 @@ GroundMaterial.prototype.bind = function (world, mesh) {
     this._effect.setFloat('uTangentScreenDist', _config.ground.params.tangentScreenDist);
     this._effect.setVector3('uPlayerPos', _config.player.position);
 
-    // height
-    if (this.heightTexture) {
-        this._effect.setTexture("uHeightSampler", this.heightTexture);
+
+    // noise
+    if (this.noiseTexture) {
+        this._effect.setTexture("uNoiseSampler", this.noiseTexture);
     }
 
     // diffuse 1
@@ -170,6 +179,11 @@ GroundMaterial.prototype.bind = function (world, mesh) {
     // diffuse 2
     if (this.diffuseTexture2) {
         this._effect.setTexture("uDiffuse2Sampler", this.diffuseTexture2);
+    }
+
+    // diffuse 3
+    if (this.diffuseTexture3) {
+        this._effect.setTexture("uDiffuse3Sampler", this.diffuseTexture3);
     }
 
     if (this._scene.clipPlane) {
@@ -200,18 +214,6 @@ GroundMaterial.prototype.bind = function (world, mesh) {
 };
 
 GroundMaterial.prototype.dispose = function(){
-    if (this.heightTexture) {
-        this.heightTexture.dispose();
-    }
-
-    if (this.diffuseTexture) {
-        this.diffuseTexture.dispose();
-    }
-
-    if (this.diffuseTexture2) {
-        this.diffuseTexture2.dispose();
-    }
-
     this.baseDispose();
 };
 

@@ -121,6 +121,7 @@ void main(void) {
     //Mie effect
     vec3 outScatMie = exp(outScatAbsorbtion*(distSunView+distViewdir)*3.);
     vec3 outScatMieAerosol = exp(outScatAbsorbtion*(distSunDir)*8.);
+
     inScatFactor += uBetaMie*phaseMie(cosTheta, uMieExentricity) * outScatMie
                   + uBetaAerosol*phaseMieAerosol(cosTheta, cosGamma) * outScatMieAerosol;
 

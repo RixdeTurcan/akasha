@@ -228,8 +228,8 @@ Sky.prototype.update = function(){
         var nbOctave = 12;
         var offsetLast = 1;
 
-        var depthNb = 2;
-        var depthSize = 384;
+        var depthNb = 32;
+        var depthSize = 448;
 
 
 
@@ -292,7 +292,6 @@ Sky.prototype.update = function(){
             this.material.cloudSunDepthTexture.material.nbStepTotal = depthSize;
             this.material.cloudSunDepthTexture.material.stepStart = t*depthSize/depthNb;
             this.material.cloudSunDepthTexture.material.stepEnd = (t+1)*depthSize/depthNb;
-
 
             if (t==depthNb-1){
                 this.lastPlayerPos = this.lastPlayerPosComputed.clone();

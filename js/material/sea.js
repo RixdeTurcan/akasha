@@ -20,6 +20,10 @@ function SeaMaterial(name, scene, ocean) {
     this.deltaCenterPos = new BABYLON.Vector3(0., 0., 0.);
 
     this.wireframe = false;
+    _$body.keypress(function(e){
+        this.wireframe = e.which==119?!this.wireframe:this.wireframe;
+        console.log(this.wireframe);
+    }.bind(this));
 
     this.shader = new Shader('./shader/sea.vertex.fx',
                              './shader/sea.fragment.fx',
