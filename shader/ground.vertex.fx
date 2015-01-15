@@ -9,43 +9,43 @@ varying vec3 vNormal;
 varying vec3 vVertexPosInWorld;
 varying float vDiffuseHeightOffset;
 
-
 float uShanonMargin = 0.5;
-vec2 uIslandPos = vec2(9000., 9000.);
-float uIslandRadius0 = 7100.;
-float uIslandRadius1 = 9000.;
-float uIslandRadius2 = 14000.;
-float uIslandSlope0 = 1000.;
-float uIslandSlope1 = 1000.;
-float uIslandSlope2 = 2500.;
-float uIslandHeight0 = 1.;
-float uIslandHeight1 = 0.3;
-float uIslandHeight2 = 0.035;
-float uIslandNoise0 = 0.4;
-float uIslandNoise1 = 0.3;
-float uIslandNoise2 = 0.1;
 
-float uIslandShapeNoiseAmplitude = 8000.;
+// radius1, radius2, radius3, centerPosX,
+// slope1, slope2, slope3, centerPosY,
+// height1, height2, height3, 0.
+// noise1, noise2, noise3, 0.,
+mat4 uIsland1Data1 = mat4(
+    6100., 9000., 14000., 13000.,
+    2000., 1000., 2500., 13000.,
+    0.735, 0.265, 1.035, 0.,
+    0.1, 0.2, 0.1, 0.
+);
+
+//noiseA1, noiseA2, noiseA3,  0.
+//0., 0., 0., 0.
+//shapeNoiseA1, shapeNoiseA2, shapeNoiseA3, shapeNoiseAg,
+//ShapeNoisePeriodX, shapeNoisePeriodY, noisePeriodX, noisePeriodY
+mat4 uIsland1Data2 = mat4(
+    0.4, 0.25, 0.15, 0.,
+    0., 0., 0., 0.,
+    0.7, 0.2, 0.1, 8000.,
+    0.0002, 0.0002, 0.001, 0.001
+);
+
+
 float uIslandDiffuseNoiseAmplitude = 150.;
-
-vec3 uIslandNoiseAmplitudes1 = vec3(0.4, 0.25, 0.15);
-vec3 uIslandNoiseAmplitudes2 = vec3(0.1, 0.05, 0.05);
-vec2 uIslandNoisePeriod = vec2(0.001, 0.001);
 vec3 uIslandDiffuseNoiseAmplitudes = vec3(0.6, 0.2, 0.2);
 vec2 uIslandDiffuseNoisePeriod = vec2(0.002, 0.002);
-vec3 uIslandShapeNoiseAmplitudes = vec3(0.7, 0.2, 0.1);
-vec2 uIslandShapeNoisePeriod = vec2(0.0002, 0.0002);
 
 float uMaxHeight = 1300.;
-
 float uDeltaPosDeltaFloorPackFactor = 1000.;
 
 
 //Get height noise
-float getNoise(vec2 pos, vec2 deltaPos)
+float getNoise(vec2 pos, vec2 deltaPos, mat4 uIslandIData2)
 {
-  return computeOctaves(uIslandNoiseAmplitudes1, uIslandNoisePeriod, pos, deltaPos, uShanonMargin)
-       + computeOctaves(uIslandNoiseAmplitudes2, uIslandNoisePeriod*8., pos, deltaPos, uShanonMargin);
+  return computeOctaves(uIslandIData2[0].xyz, uIslandIData2[3].zw, pos, deltaPos, uShanonMargin);
 }
 
 //Get diffuse texture height limit
@@ -55,39 +55,42 @@ float getDiffuseNoise(vec2 pos, vec2 deltaPos)
 }
 
 //Get island distance noise
-float getShapeNoise(vec2 pos, vec2 deltaPos)
+float getShapeNoise(vec2 pos, vec2 deltaPos, mat4 uIslandIData2)
 {
-  return computeOctaves(uIslandShapeNoiseAmplitudes, uIslandShapeNoisePeriod, pos, deltaPos, uShanonMargin);
+  return computeOctaves(uIslandIData2[2].xyz, uIslandIData2[3].xy, pos, deltaPos, uShanonMargin);
 }
 
+float getHeightShiftIslandI(vec2 realPos, vec2 deltaPos, mat4 uIslandIData1, mat4 uIslandIData2)
+{
+   vec2 center = vec2(uIslandIData1[0].a, uIslandIData1[1].a);
+   float islandDist = length(realPos - center);
+
+   if (islandDist<uIslandIData1[0].z+uIslandIData2[2].a)
+   {
+
+     islandDist += getShapeNoise(realPos, deltaPos, uIslandIData2) * uIslandIData2[2].a;
 
 
+     vec3 factor = vec3(smoothstep(uIslandIData1[0].x+uIslandIData1[1].x, uIslandIData1[0].x-uIslandIData1[1].x, islandDist),
+                        smoothstep(uIslandIData1[0].y+uIslandIData1[1].y, uIslandIData1[0].y-uIslandIData1[1].y, islandDist),
+                        smoothstep(uIslandIData1[0].z+uIslandIData1[1].z, uIslandIData1[0].z-uIslandIData1[1].z, islandDist));
 
+     return dot(factor, uIslandIData1[2].xyz)
+          + getNoise(realPos, deltaPos, uIslandIData2)
+            * dot(uIslandIData1[3].xyz, factor);
+   }
+   else
+   {
+     return 0.;
+   }
+}
 
 vec3 computeVertexPos(vec2 pos, vec2 deltaPos)
 {
    vec2 realPos = pos + uPlayerPos.xz;
 
-   //Distance to the center of the island
-   float islandDist = length(realPos - uIslandPos)
-                    + getShapeNoise(realPos, deltaPos) * uIslandShapeNoiseAmplitude;
-
-   //factor related to the distance of each inner radius
-   float factor0 = smoothstep(uIslandRadius0+uIslandSlope0, uIslandRadius0-uIslandSlope0, islandDist);
-   float factor1 = smoothstep(uIslandRadius1+uIslandSlope1, uIslandRadius1-uIslandSlope1, islandDist);
-   float factor2 = smoothstep(uIslandRadius2+uIslandSlope2, uIslandRadius2-uIslandSlope2, islandDist);
-
-   //Island mean height
-   float islandHeight = -1.
-                      + factor2*(1.+uIslandHeight2)
-                      + factor1*(uIslandHeight1-uIslandHeight2)
-                      + factor0*(uIslandHeight0-uIslandHeight1-uIslandHeight2);
-
-   //Island noised height
-   float height = getNoise(realPos, deltaPos) * ( uIslandNoise2*factor2
-                                                + (uIslandNoise1-uIslandNoise2)*factor1
-                                                + (uIslandNoise0-uIslandNoise1-uIslandNoise2)*factor0)
-                + islandHeight;
+   float height = -1.
+                + getHeightShiftIslandI(realPos, deltaPos, uIsland1Data1, uIsland1Data2);
 
    return vec3(pos.x, uMaxHeight*height, pos.y);
 }
@@ -97,7 +100,7 @@ vec3 computeVertexPos(vec2 pos, vec2 deltaPos)
 
 void main(void)
 {
-  //smoothed distance betwwen samples
+  //smoothed distance between samples
   float deltaPos = floor(position.y);
   vec2 deltaPosVec = vec2(1., 1.)*deltaPos;
 

@@ -19,7 +19,8 @@ function GroundMaterial(name, scene, ground) {
     this.shader = new Shader('./shader/ground.vertex.fx',
                              './shader/ground.fragment.fx',
                              ['./shader/texture_noise.include.fx'],
-                             []);
+                             ['./shader/phong.include.fx',
+                              './shader/sphere_grid.include.fx']);
 
     this.backFaceCulling = false;
     this._scene = scene;
@@ -57,27 +58,75 @@ GroundMaterial.prototype.isReady = function (mesh) {
         }
     }
 
-    if (this.diffuseTexture) {
-        if (!this.diffuseTexture.isReady()) {
+    if (this.diffuse1Texture) {
+        if (!this.diffuse1Texture.isReady()) {
             return false;
         } else {
-            defines.push("#define DIFFUSE");
+            defines.push("#define DIFFUSE_1");
         }
     }
 
-    if (this.diffuseTexture2) {
-        if (!this.diffuseTexture2.isReady()) {
+    if (this.diffuseNormal1Texture) {
+        if (!this.diffuseNormal1Texture.isReady()) {
             return false;
         } else {
-            defines.push("#define DIFFUSE2");
+            defines.push("#define DIFFUSE_NORMAL_1");
         }
     }
 
-    if (this.diffuseTexture3) {
-        if (!this.diffuseTexture3.isReady()) {
+    if (this.diffuseFar1Texture) {
+        if (!this.diffuseFar1Texture.isReady()) {
             return false;
         } else {
-            defines.push("#define DIFFUSE3");
+            defines.push("#define DIFFUSE_FAR_1");
+        }
+    }
+
+    if (this.diffuse2Texture) {
+        if (!this.diffuse1Texture.isReady()) {
+            return false;
+        } else {
+            defines.push("#define DIFFUSE_2");
+        }
+    }
+
+    if (this.diffuseNormal2Texture) {
+        if (!this.diffuseNormal2Texture.isReady()) {
+            return false;
+        } else {
+            defines.push("#define DIFFUSE_NORMAL_2");
+        }
+    }
+
+    if (this.diffuseFar2Texture) {
+        if (!this.diffuseFar2Texture.isReady()) {
+            return false;
+        } else {
+            defines.push("#define DIFFUSE_FAR_2");
+        }
+    }
+
+    if (this.diffuse3Texture) {
+        if (!this.diffuse1Texture.isReady()) {
+            return false;
+        } else {
+            defines.push("#define DIFFUSE_3");
+        }
+    }
+
+    if (this.diffuseNormal3Texture) {
+        if (!this.diffuseNormal3Texture.isReady()) {
+            return false;
+        } else {
+            defines.push("#define DIFFUSE_NORMAL_3");
+        }
+    }
+
+    if (this.diffuseFar3Texture) {
+        if (!this.diffuseFar3Texture.isReady()) {
+            return false;
+        } else {
+            defines.push("#define DIFFUSE_FAR_3");
         }
     }
 
@@ -92,6 +141,39 @@ GroundMaterial.prototype.isReady = function (mesh) {
     // Fog
     if (this._scene.fogMode !== BABYLON.Scene.FOGMODE_NONE) {
         defines.push("#define FOG");
+        if (this._scene.fogMode == BABYLON.Scene.FOGMODE_LINEAR){
+            defines.push("#define FOGMODE_LINEAR");
+        }else if (this._scene.fogMode == BABYLON.Scene.FOGMODE_EXP){
+            defines.push("#define FOGMODE_EXP");
+        }else if (this._scene.fogMode == BABYLON.Scene.FOGMODE_EXP2){
+            defines.push("#define FOGMODE_EXP2");
+        }
+    }
+
+    // Lights
+    var lightIndex = 0;
+    if (this._scene.lightsEnabled) {
+        for (var index = 0; index < this._scene.lights.length; index++) {
+            var light = this._scene.lights[index];
+
+            if (!light.isEnabled()) continue;
+            if (mesh && light.excludedMeshes.indexOf(mesh) !== -1) continue;
+
+            defines.push("#define LIGHT" + lightIndex);
+
+            if (light instanceof BABYLON.PointLight){
+             defines.push("#define LIGHT" + lightIndex + "_TYPE_POINT");
+            }
+            if (light instanceof BABYLON.DirectionalLight){
+             defines.push("#define LIGHT" + lightIndex + "_TYPE_DIR");
+            }
+            if (light instanceof BABYLON.HemisphericLight){
+             defines.push("#define LIGHT" + lightIndex + "_TYPE_POINT");
+            }
+
+            lightIndex++;
+            if (lightIndex == 4)break;
+        }
     }
 
     var join = defines.join("\n");
@@ -102,12 +184,14 @@ GroundMaterial.prototype.isReady = function (mesh) {
                                             fragment: this.shader.fragmentElem},
                                            [BABYLON.VertexBuffer.PositionKind],
                                            ['uViewProjection', 'uEyePosInWorld',
-                                           'uBumpInfos', 'uBump2Infos',
-                                           'uClipHeight',
-                                           'uFogInfos', 'uFogColor', 'uVerticalShift',
-                                           'uTangentScreenDist', 'uPlayerPos', "uClipPlane"],
+                                           'uFogInfos', 'uVerticalShift',
+                                           'uTangentScreenDist', 'uPlayerPos',
+                                           'uLightData0', 'uLightDiffuse0',
+                                           'uLightData1', 'uLightDiffuse1'],
                                            ['uNoiseSampler', 'uSkySampler',
-                                            'uDiffuseSampler', 'uDiffuse2Sampler', 'uDiffuse3Sampler'],
+                                            'uDiffuse1Sampler', 'uDiffuse2Sampler', 'uDiffuse3Sampler',
+                                            'uDiffuseFar1Sampler', 'uDiffuseFar2Sampler', 'uDiffuseFar3Sampler',
+                                            'uDiffuseNormal1Sampler', 'uDiffuseNormal2Sampler', 'uDiffuseNormal3Sampler'],
                                            join);
     }
 
@@ -144,24 +228,41 @@ GroundMaterial.prototype.bind = function (world, mesh) {
     }
 
     // diffuse 1
-    if (this.diffuseTexture) {
-        this._effect.setTexture("uDiffuseSampler", this.diffuseTexture);
+    if (this.diffuse1Texture) {
+        this._effect.setTexture("uDiffuse1Sampler", this.diffuse1Texture);
+    }
+    if (this.diffuseNormal1Texture) {
+        this._effect.setTexture("uDiffuseNormal1Sampler", this.diffuseNormal1Texture);
+    }
+    if (this.diffuseFar1Texture) {
+        this._effect.setTexture("uDiffuseFar1Sampler", this.diffuseFar1Texture);
     }
 
     // diffuse 2
-    if (this.diffuseTexture2) {
-        this._effect.setTexture("uDiffuse2Sampler", this.diffuseTexture2);
+    if (this.diffuse2Texture) {
+        this._effect.setTexture("uDiffuse2Sampler", this.diffuse2Texture);
+    }
+    if (this.diffuseNormal2Texture) {
+        this._effect.setTexture("uDiffuseNormal2Sampler", this.diffuseNormal2Texture);
+    }
+    if (this.diffuseFar2Texture) {
+        this._effect.setTexture("uDiffuseFar2Sampler", this.diffuseFar2Texture);
     }
 
     // diffuse 3
-    if (this.diffuseTexture3) {
-        this._effect.setTexture("uDiffuse3Sampler", this.diffuseTexture3);
+    if (this.diffuse3Texture) {
+        this._effect.setTexture("uDiffuse3Sampler", this.diffuse3Texture);
+    }
+    if (this.diffuseNormal3Texture) {
+        this._effect.setTexture("uDiffuseNormal3Sampler", this.diffuseNormal3Texture);
+    }
+    if (this.diffuseFar3Texture) {
+        this._effect.setTexture("uDiffuseFar3Sampler", this.diffuseFar3Texture);
     }
 
     // Fog
     if (this._scene.fogMode !== BABYLON.Scene.FOGMODE_NONE) {
         this._effect.setFloat4('uFogInfos', this._scene.fogMode, this._scene.fogStart, this._scene.fogEnd, this._scene.fogDensity);
-        this._effect.setColor3('uFogColor', this._scene.fogColor);
     }
 
     //Sky
@@ -170,6 +271,24 @@ GroundMaterial.prototype.bind = function (world, mesh) {
         this._effect.setFloat("uVerticalShift", _config.sky.params.verticalShift);
     }
 
+    // Lights
+    if (this._scene.lightsEnabled) {
+        var lightIndex = 0;
+        for (var index = 0; index < this._scene.lights.length; index++) {
+            var light = this._scene.lights[index];
+
+            if (!light.isEnabled()) continue;
+            if (mesh && light.excludedMeshes.indexOf(mesh) !== -1) continue;
+
+            light.transferToEffect(this._effect, "uLightData" + lightIndex);
+            light.diffuse.scaleToRef(light.intensity, this._scaledDiffuse);
+            light.specular.scaleToRef(light.intensity, this._scaledSpecular);
+            this._effect.setColor3("uLightDiffuse" + lightIndex, this._scaledDiffuse);
+
+            lightIndex++;
+            if (lightIndex == 4) break;
+        }
+    }
 };
 
 GroundMaterial.prototype.dispose = function(){
