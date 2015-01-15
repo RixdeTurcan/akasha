@@ -21,7 +21,6 @@
     <script type="text/javascript" src="js/material/vegetation_pos.js"></script>
     <script type="text/javascript" src="js/material/vegetation.js"></script>
     <script type="text/javascript" src="js/material/ground.js"></script>
-    <script type="text/javascript" src="js/material/ground_height.js"></script>
     <script type="text/javascript" src="js/material/cloudheight.js"></script>
     <script type="text/javascript" src="js/material/cloudsundepth.js"></script>
     <script type="text/javascript" src="js/material/sea.js"></script>

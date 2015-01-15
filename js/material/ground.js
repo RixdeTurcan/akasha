@@ -7,28 +7,19 @@ function GroundMaterial(name, scene, ground) {
     this._scaledDiffuse = new BABYLON.Color3();
     this._scaledSpecular = new BABYLON.Color3()
 
-    this.projectedGrid = new ProjectedGrid(this.ground.camera);
-    this.projectedGrid.marginY = 3.;
-    this.projectedGrid.marginX = 2.;
-    this.projectedGrid.horizonFactor = 0.99;
-
     this._renderTargets = new BABYLON.SmartArray(32);
     this._lightMatrix = BABYLON.Matrix.Zero();
 
     this.wireframe = false;
     _$body.keypress(function(e){
         this.wireframe = e.which==119?!this.wireframe:this.wireframe;
-        console.log(this.wireframe);
     }.bind(this));
 
 
     this.shader = new Shader('./shader/ground.vertex.fx',
                              './shader/ground.fragment.fx',
-                             [],
+                             ['./shader/texture_noise.include.fx'],
                              []);
-
-
-    this.swapBufferId = 0;
 
     this.backFaceCulling = false;
     this._scene = scene;
@@ -50,19 +41,6 @@ GroundMaterial.prototype.needAlphaTesting = function () {
 // Methods
 GroundMaterial.prototype.getRenderTargetTextures = function () {
     this._renderTargets.reset();
-
-    if (this.noiseTexture && this.noiseTexture.isRenderTarget) {
-        this._renderTargets.push(this.noiseTexture);
-    }
-
-    if (this.shadowHeightTexture && this.shadowHeightTexture.isRenderTarget) {
-        this._renderTargets.push(this.shadowHeightTexture);
-    }
-
-    if (this.shadowTexture && this.shadowTexture.isRenderTarget) {
-        this._renderTargets.push(this.shadowTexture);
-    }
-
 
     return this._renderTargets;
 };
@@ -101,11 +79,6 @@ GroundMaterial.prototype.isReady = function (mesh) {
         } else {
             defines.push("#define DIFFUSE3");
         }
-    }
-
-
-    if (this._scene.clipPlane) {
-        defines.push("#define CLIPPLANE");
     }
 
     if (this.skyTexture) {
@@ -162,7 +135,6 @@ GroundMaterial.prototype.bind = function (world, mesh) {
 
     this._effect.setVector3('uEyePosInWorld', eyePos);
 
-    this._effect.setFloat('uTangentScreenDist', _config.ground.params.tangentScreenDist);
     this._effect.setVector3('uPlayerPos', _config.player.position);
 
 
@@ -186,18 +158,6 @@ GroundMaterial.prototype.bind = function (world, mesh) {
         this._effect.setTexture("uDiffuse3Sampler", this.diffuseTexture3);
     }
 
-    if (this._scene.clipPlane) {
-        var clipPlane = this._scene.clipPlane;
-        this._effect.setFloat4("uClipPlane", clipPlane.normal.x, clipPlane.normal.y, clipPlane.normal.z, clipPlane.d);
-    }
-
-
-    if (this._scene.renderingFbo){
-        this._effect.setFloat('uClipHeight', -400.);
-    }else{
-        this._effect.setFloat('uClipHeight', 0.);
-    }
-
     // Fog
     if (this._scene.fogMode !== BABYLON.Scene.FOGMODE_NONE) {
         this._effect.setFloat4('uFogInfos', this._scene.fogMode, this._scene.fogStart, this._scene.fogEnd, this._scene.fogDensity);
@@ -208,7 +168,6 @@ GroundMaterial.prototype.bind = function (world, mesh) {
     if (this.skyTexture){
         this._effect.setTexture("uSkySampler", this.skyTexture);
         this._effect.setFloat("uVerticalShift", _config.sky.params.verticalShift);
-
     }
 
 };

@@ -23,7 +23,7 @@ function Ground(camera, light){
         this.mesh[i].subMeshes[0].isInFrustum = function(){return true;};
         this.mesh[i].subMeshes[0].isHiddenScreen = true;
     }
-
+/*
     var scaling = 1.;
     this.meshLowDef = createGrid("ground", parseInt(_config.ground.sampling.gridLowDef)-1,
                            0., 1., 0., 1.,
@@ -44,6 +44,7 @@ function Ground(camera, light){
     addMaterialToMesh(this.material, this.meshLowDefRefraction, false, true);
     this.meshLowDefRefraction.isInFrustum = function(){return true;};
     this.meshLowDefRefraction.subMeshes[0].isInFrustum = function(){return true;};
+*/
 
     //Noise texture
     this.noiseTexture = new BABYLON.Texture("asset/noise.png", _config.world.scene);
@@ -69,7 +70,7 @@ function Ground(camera, light){
     this.material.diffuseTexture3.wrapU = BABYLON.Texture.WRAP_ADDRESSMODE;
     this.material.diffuseTexture3.wrapV = BABYLON.Texture.WRAP_ADDRESSMODE;
 
-
+/*
     //Reflection
     this.reflectionMaterial = new ReflectionGroundMaterial("ReflectionGround",
                                                            _config.world.scene,
@@ -146,6 +147,8 @@ function Ground(camera, light){
     this.shadowTexture.material.projectedGrid.maxPosRight.z = _config.ground.params.shadowTextureWidth;
 
     this.shadowMapPreviousPos = _config.player.position;
+
+    */
 }
 
 Ground.prototype.addWavedataTexture = function(texture)
@@ -167,6 +170,7 @@ Ground.prototype.addShadowTexture = function(shadowTexture)
 
 Ground.prototype.update = function()
 {
+/*
     this.material.projectedGrid.compute(_config.world.cameraPos,
                                         _config.world.transformMat,
                                         _config.world.invTransformMat,
@@ -176,6 +180,7 @@ Ground.prototype.update = function()
 
     this.shadowHeightTexture.material.deltaPos = this.shadowMapPreviousPos.scale(-1);
     this.shadowTexture.material.deltaPos = this.shadowMapPreviousPos.scale(-1);
+*/
 
     this.mesh[this.meshToDisplay].subMeshes[0].isHiddenScreen = true;
     this.meshToDisplay = Math.round((_config.player.angle.mod(2.*_pi))/(2.*_pi/this.nbQuadrant)).mod(this.nbQuadrant);

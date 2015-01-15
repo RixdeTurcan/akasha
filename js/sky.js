@@ -228,8 +228,8 @@ Sky.prototype.update = function(){
         var nbOctave = 12;
         var offsetLast = 1;
 
-        var depthNb = 32;
-        var depthSize = 448;
+        var depthNb = 2;//32;
+        var depthSize = 100;//448;
 
 
 
