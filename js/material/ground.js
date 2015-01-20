@@ -18,9 +18,12 @@ function GroundMaterial(name, scene, ground) {
 
     this.shader = new Shader('./shader/ground.vertex.fx',
                              './shader/ground.fragment.fx',
-                             ['./shader/texture_noise.include.fx'],
+                             ['./shader/texture_noise.include.fx',
+                              './shader/ground.include.fx'],
                              ['./shader/phong.include.fx',
-                              './shader/sphere_grid.include.fx']);
+                              './shader/sphere_grid.include.fx',
+                              './shader/texture_noise.include.fx',
+                              './shader/ground.include.fx']);
 
     this.backFaceCulling = false;
     this._scene = scene;
@@ -182,7 +185,8 @@ GroundMaterial.prototype.isReady = function (mesh) {
         this._cachedDefines = join;
         this._effect = engine.createEffect({vertex: this.shader.vertexElem,
                                             fragment: this.shader.fragmentElem},
-                                           [BABYLON.VertexBuffer.PositionKind],
+                                           [BABYLON.VertexBuffer.PositionKind,
+                                            BABYLON.VertexBuffer.UV2Kind],
                                            ['uViewProjection', 'uEyePosInWorld',
                                            'uFogInfos', 'uVerticalShift',
                                            'uTangentScreenDist', 'uPlayerPos',

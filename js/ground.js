@@ -5,17 +5,23 @@ function Ground(camera, light){
     this.camera = camera;
     this.light = light;
 
-    this.nbQuadrant = 40;
-    this.mesh = [];
     this.material = new GroundMaterial("GroundMaterial", _config.world.scene, this);
+
+    this.nbQuadrant = 40;
     this.meshToDisplay = 0;
+
+    this.mesh = [];
+    this.grid = new Grid();
+    this.grid.createGrid(20., 100, 100, 4, 1);
+
 
     for(var i = 0; i < this.nbQuadrant; i++){
         var beta = 2.*_pi*i/this.nbQuadrant;
-        var betaRange = _pi/4.9; //Max 5.5
-        this.mesh[i] = createLodGrid("ground"+i, 20., 100, 100, 4, 1,
-                                     beta+_pi, betaRange, -500., 500.,
-                                     _config.world.scene, false);
+        var betaRange = _pi/5.0;
+
+        this.grid.clip(beta+_pi, betaRange, -750., 750.);
+        this.mesh[i] = this.grid.makeClippedMesh("ground"+i, _config.world.scene);
+
         this.mesh[i].material = new BABYLON.MultiMaterial("groundMultiMat", _config.world.scene);
         this.mesh[i].subMeshes = [];
         addMaterialToMesh(this.material, this.mesh[i], false, false);

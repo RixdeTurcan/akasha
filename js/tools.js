@@ -539,104 +539,101 @@ function createGrid(name, subdivisions, uvXMin, uvXMax, uvYMin, uvYMax, scene, u
     return ground;
 }
 
-function createLodGrid(name, unitSize, nbUnit, finalNbUnit, nbLod, lodMin,
-                       beta, betaRange, betaCenterDist, distMin,
-                       scene, updatable)
+function Grid()
 {
-    var transitionSizeBot = 1;
-    var transitionSizeTop = 2;
+    this.positions = [];
+    this.indices = [];
+    this.uv2s = [];
 
-    beta = beta%(2*_pi);
-    if (beta>_pi){
-        beta -= 2*_pi;
-    }
+    this.clippedPositions = [];
+    this.clippedIndices = [];
+    this.clippedUv2s = [];
 
-    var positions = [];
-    var indices = [];
+    this.reorderedPositions = [];
+    this.reorderedUv2s = [];
 
-    //Number of points in a square of radius r
-    var n = function(r){
-        return 4*r*r+4*r+1;
-    }
+    this.transitionSizeBot = 1;
+    this.transitionSizeTop = 2;
+    this.nbUnit = 2;
+}
 
-    //Number of points in a square of radius r and lod l
-    var N = function(r, l){
-        if (l==0){
-            return 0;
-        }else if (l==1){
-            return n(r);
-        }else{
-            var lMin = parseInt(nbUnit/2-transitionSizeTop);
-            var t = n(nbUnit+transitionSizeBot);
+//Number of points in a square of radius r
+Grid.prototype.n = function(r)
+{
+    return 4*r*r+4*r+1;
+}
 
-            for(var m=2; m<l; m++){
-                t += n(nbUnit+transitionSizeBot) - n(lMin)
-            }
+//Number of points in a square of radius r and lod l
+Grid.prototype.N = function(r, l)
+{
+    if (l==0){
+        return 0;
+    }else if (l==1){
+        return this.n(r);
+    }else{
+        var lMin = parseInt(this.nbUnit/2-this.transitionSizeTop);
+        var t = this.n(this.nbUnit+this.transitionSizeBot);
 
-            t += n(r) - n(lMin);
-
-            return t;
+        for(var m=2; m<l; m++){
+            t += this.n(this.nbUnit+this.transitionSizeBot) - this.n(lMin)
         }
+
+        t += this.n(r) - this.n(lMin);
+
+        return t;
     }
+}
 
-    //Position of a point i in the ring of radius r and lod l
-    var p = function(i, r, l){
-        if (r==0){
-            return 0;
-        }else{
-            return N(r-1, l)+i%(8*r);
-        }
+//Position of a point i in the ring of radius r and lod l
+Grid.prototype.p = function(i, r, l)
+{
+    if (r==0){
+        return 0;
+    }else{
+        return this.N(r-1, l)+i%(8*r);
     }
+}
 
-    //Push the indices of a normal square
-    var f4 = function(a0, a1, b0, b1, invert){
-        if (!invert){
-            indices.push(a0, a1, b0);
-            indices.push(b0, a1, b1);
-        }else{
-            indices.push(a0, a1, b1);
-            indices.push(b0, a0, b1);
-        }
+//Push the indices of a normal square
+Grid.prototype.f4 = function(a0, a1, b0, b1, invert)
+{
+    if (!invert){
+        this.indices.push(a0, a1, b0);
+        this.indices.push(b0, a1, b1);
+    }else{
+        this.indices.push(a0, a1, b1);
+        this.indices.push(b0, a0, b1);
     }
+}
 
-    //Push the indices of a corner square
-    var f4s = function(a0, b0, b1, b2, invert){
-        if (!invert){
-            indices.push(a0, b0, b2);
-            indices.push(b1, b0, b2);
-        }else{
-            indices.push(a0, b0, b1);
-            indices.push(b1, a0, b2);
-        }
+//Push the indices of a corner square
+Grid.prototype.f4s = function(a0, b0, b1, b2, invert)
+{
+    if (!invert){
+        this.indices.push(a0, b0, b2);
+        this.indices.push(b1, b0, b2);
+    }else{
+        this.indices.push(a0, b0, b1);
+        this.indices.push(b1, a0, b2);
     }
+}
 
-    //Push the indices of a transition square
-    var f5 = function(a0, a1, a2, b0, b1, invert){
-        if (!invert){
-            indices.push(a0, a1, b0);
-            indices.push(a1, a2, b0);
-            indices.push(a2, b1, b0);
+Grid.prototype.createGrid = function(unitSize, nbUnit, finalNbUnit, nbLod, lodMin, withoutIndices)
+{
 
-            indices.push(a0, a2, b0);
+    this.positions = [];
+    this.indices = [];
+    this.uv2s = [];
+    this.nbUnit = nbUnit;
 
-        }else{
-            indices.push(a0, b0, b1);
-            indices.push(a0, a1, b1);
-            indices.push(a1, a2, b1);
-
-            indices.push(a0, a2, b1);
-        }
-    }
-
-
-    positions.push(0., 0., 0.);
+    this.positions.push(0., 0., 0.);
 
     for (var l = 1; l <= nbLod; l++){
         var s = unitSize * Math.pow(2, l-1);
         var radiusMin = 1;
-        var radiusMax = nbUnit+transitionSizeBot;
+        var radiusMax = this.nbUnit+this.transitionSizeBot;
         if (l>1){
-            radiusMin = parseInt(nbUnit/2+1-transitionSizeTop);
+            radiusMin = parseInt(this.nbUnit/2+1-this.transitionSizeTop);
         }
         if (l==nbLod){
             var radiusMax = finalNbUnit;
@@ -645,184 +642,232 @@ function createLodGrid(name, unitSize, nbUnit, finalNbUnit, nbLod, lodMin,
         for(var r = radiusMin; r <= radiusMax; r++){
             var factor = Math.min(1., (r-radiusMin)/(radiusMax-radiusMin));
             var s3 = Math.floor(s*(1.5+1.5*Math.pow(factor, 2.)));
-            var s2 = s/1000.+s3;
 
+            //Parameters
+            for(var j = 0; j < 8*r; j++){
+                this.uv2s.push(s, s3);
+            }
+
+            //Positions
             for(var j = 0; j < r; j++){
-                positions.push(j*s,
-                               s2,
-                               r*s);
+                this.positions.push(j*s,
+                                    0.,
+                                    r*s);
             }
             for(var j = 0; j < 2*r; j++){
-                positions.push(r*s,
-                               s2,
-                               (r-j)*s);
+                this.positions.push(r*s,
+                                    0.,
+                                    (r-j)*s);
             }
             for(var j = 0; j < 2*r; j++){
-                positions.push((r-j)*s,
-                               s2,
-                               -r*s);
+                this.positions.push((r-j)*s,
+                                    0.,
+                                    -r*s);
             }
             for(var j = 0; j < 2*r; j++){
-                positions.push(-r*s,
-                               s2,
-                               (-r+j)*s);
+                this.positions.push(-r*s,
+                                    0.,
+                                    (-r+j)*s);
             }
             for(var j = 0; j < r; j++){
-                positions.push((-r+j)*s,
-                               s2,
-                               r*s);
+                this.positions.push((-r+j)*s,
+                                    0.,
+                                    r*s);
             }
 
             //Triangles
-            if (l>1 && r == radiusMin){/*
+            if (!(l>1 && r == radiusMin) && !withoutIndices){
                 for(var j = 0; j < r-1; j++){
-                    f5(p(2*j  , radiusMax, l-1),
-                       p(2*j+1, radiusMax, l-1),
-                       p(2*j+2, radiusMax, l-1),
-                       p(j    , r, l),
-                       p(j+1  , r, l));
+                    this.f4(this.p(j  , r-1, l),
+                            this.p(j+1, r-1, l),
+                            this.p(j  , r, l),
+                            this.p(j+1, r, l));
                 }
-                f4s(p(2*r-2, radiusMax, l-1),
-                    p(r-1  , r, l),
-                    p(r    , r, l),
-                    p(r+1  , r, l));
+                this.f4s(this.p(r-1, r-1, l),
+                         this.p(r-1, r, l),
+                         this.p(r  , r, l),
+                         this.p(r+1, r, l));
                 for(var j = 0; j < 2*r-2; j++){
-                    f5(p(2*r+2*j-2, radiusMax, l-1),
-                       p(2*r+2*j-1, radiusMax, l-1),
-                       p(2*r+2*j  , radiusMax, l-1),
-                       p(r+j+1    , r, l),
-                       p(r+j+2    , r, l), true);
+                    this.f4(this.p(r+j-1, r-1, l),
+                            this.p(r+j  , r-1, l),
+                            this.p(r+j+1, r, l),
+                            this.p(r+j+2, r, l), true);
                 }
-                f4s(p(6*r-6, radiusMax, l-1),
-                    p(3*r-1, r, l),
-                    p(3*r  , r, l),
-                    p(3*r+1, r, l), true);
+                this.f4s(this.p(3*r-3, r-1, l),
+                         this.p(3*r-1, r, l),
+                         this.p(3*r  , r, l),
+                         this.p(3*r+1, r, l), true);
                 for(var j = 0; j < 2*r-2; j++){
-                    f5(p(6*r+2*j-6, radiusMax, l-1),
-                       p(6*r+2*j-5, radiusMax, l-1),
-                       p(6*r+2*j-4, radiusMax, l-1),
-                       p(3*r+j+1  , r, l),
-                       p(3*r+j+2  , r, l));
+                    this.f4(this.p(3*r+j-3, r-1, l),
+                            this.p(3*r+j-2, r-1, l),
+                            this.p(3*r+j+1, r, l),
+                            this.p(3*r+j+2, r, l));
                 }
-                f4s(p(10*r-10, radiusMax, l-1),
-                    p(5*r-1  , r, l),
-                    p(5*r    , r, l),
-                    p(5*r+1  , r, l));
+                this.f4s(this.p(5*r-5, r-1, l),
+                         this.p(5*r-1, r, l),
+                         this.p(5*r  , r, l),
+                         this.p(5*r+1, r, l));
                 for(var j = 0; j < 2*r-2; j++){
-                    f5(p(10*r+2*j-10, radiusMax, l-1),
-                       p(10*r+2*j-9 , radiusMax, l-1),
-                       p(10*r+2*j-8 , radiusMax, l-1),
-                       p(5*r+j+1   , r, l),
-                       p(5*r+j+2   , r, l), true);
+                    this.f4(this.p(5*r+j-5, r-1, l),
+                       this.p(5*r+j-4, r-1, l),
+                       this.p(5*r+j+1, r, l),
+                       this.p(5*r+j+2, r, l), true);
                 }
-                f4s(p(14*r-14, radiusMax, l-1),
-                    p(7*r-1  , r, l),
-                    p(7*r    , r, l),
-                    p(7*r+1  , r, l), true);
+                this.f4s(this.p(7*r-7, r-1, l),
+                         this.p(7*r-1, r, l),
+                         this.p(7*r  , r, l),
+                         this.p(7*r+1, r, l), true);
                 for(var j = 0; j < r-1; j++){
-                    f5(p(14*r+2*j-14, radiusMax, l-1),
-                       p(14*r+2*j-13, radiusMax, l-1),
-                       p(14*r+2*j-12, radiusMax, l-1),
-                       p(7*r+j+1   , r, l),
-                       p(7*r+j+2   , r, l));
-                }*/
-            }else{
-                for(var j = 0; j < r-1; j++){
-                    f4(p(j  , r-1, l),
-                       p(j+1, r-1, l),
-                       p(j  , r, l),
-                       p(j+1, r, l));
-                }
-                f4s(p(r-1, r-1, l),
-                    p(r-1, r, l),
-                    p(r  , r, l),
-                    p(r+1, r, l));
-                for(var j = 0; j < 2*r-2; j++){
-                    f4(p(r+j-1, r-1, l),
-                       p(r+j  , r-1, l),
-                       p(r+j+1, r, l),
-                       p(r+j+2, r, l), true);
-                }
-                f4s(p(3*r-3, r-1, l),
-                    p(3*r-1, r, l),
-                    p(3*r  , r, l),
-                    p(3*r+1, r, l), true);
-                for(var j = 0; j < 2*r-2; j++){
-                    f4(p(3*r+j-3, r-1, l),
-                       p(3*r+j-2, r-1, l),
-                       p(3*r+j+1, r, l),
-                       p(3*r+j+2, r, l));
-                }
-                f4s(p(5*r-5, r-1, l),
-                    p(5*r-1, r, l),
-                    p(5*r  , r, l),
-                    p(5*r+1, r, l));
-                for(var j = 0; j < 2*r-2; j++){
-                    f4(p(5*r+j-5, r-1, l),
-                       p(5*r+j-4, r-1, l),
-                       p(5*r+j+1, r, l),
-                       p(5*r+j+2, r, l), true);
-                }
-                f4s(p(7*r-7, r-1, l),
-                    p(7*r-1, r, l),
-                    p(7*r  , r, l),
-                    p(7*r+1, r, l), true);
-                for(var j = 0; j < r-1; j++){
-                    f4(p(7*r+j-7, r-1, l),
-                       p(7*r+j-6, r-1, l),
-                       p(7*r+j+1, r, l),
-                       p(7*r+j+2, r, l));
+                    this.f4(this.p(7*r+j-7, r-1, l),
+                            this.p(7*r+j-6, r-1, l),
+                            this.p(7*r+j+1, r, l),
+                            this.p(7*r+j+2, r, l));
                 }
             }
         }
     }
-    //clip the grid
-    var isInFrustrum = function(x, z){
-        x -= Math.cos(beta)*betaCenterDist;
-        z -= Math.sin(beta)*betaCenterDist;
+}
 
-        var angle = Math.atan2(z, x);
-        var distAngle = Math.min(Math.abs(angle+beta), Math.abs(angle-beta));
+Grid.prototype.isInFrustrum = function(x, z, beta, betaRange, betaCenterDist, distMin)
+{
+    x -= Math.cos(beta)*betaCenterDist;
+    z -= Math.sin(beta)*betaCenterDist;
 
-        var dist = x*Math.cos(beta)+z*Math.sin(beta);
+    var angle = Math.atan2(z, x);
+    var distAngle = Math.min(Math.abs(angle+beta), Math.abs(angle-beta));
 
-        return (distAngle<betaRange && dist>distMin);
+    var dist = x*Math.cos(beta)+z*Math.sin(beta);
+
+    return (distAngle<betaRange && dist>distMin);
+}
+
+Grid.prototype.clip = function(beta, betaRange, betaCenterDist, distMin, withoutIndices, useReorderedPositions)
+{
+    var position = useReorderedPositions ? this.reorderedPositions : this.positions;
+    var uv2s = useReorderedPositions ? this.reorderedUv2s : this.uv2s;
+
+    beta = beta%(2*_pi);
+    if (beta>_pi){
+        beta -= 2*_pi;
     }
 
-    var positionsClamped = [];
+    this.clippedPositions = [];
+    this.clippedUv2s = [];
+    this.clippedIndices = [];
+
     var positionToPositionClamped = [];
     {
-        var s = parseInt(positions.length/3);
+        var s = parseInt(position.length/3);
         var j = 0;
         for(var i=0; i<s; i++){
-            if (isInFrustrum(positions[3*i], positions[3*i+2])){
-                positionsClamped.push(positions[3*i], positions[3*i+1], positions[3*i+2]);
+            if (this.isInFrustrum(position[3*i], position[3*i+2],
+                                  beta, betaRange, betaCenterDist, distMin)
+            ){
+                this.clippedPositions.push(position[3*i], position[3*i+1], position[3*i+2]);
+                this.clippedUv2s.push(uv2s[2*i], uv2s[2*i+1]);
                 positionToPositionClamped[i] = j;
                 j++;
             }
         }
     }
-    var indicesClamped = [];
-    {
-        var s = parseInt(indices.length/3);
+
+    if (!withoutIndices || useReorderedPositions){
+        var s = parseInt(this.indices.length/3);
         for(var i=0; i<s; ++i){
-            if ( positionToPositionClamped[indices[3*i]]!==undefined
-              && positionToPositionClamped[indices[3*i+1]]!==undefined
-              && positionToPositionClamped[indices[3*i+2]]!==undefined
+            if ( positionToPositionClamped[this.indices[3*i]]!==undefined
+              && positionToPositionClamped[this.indices[3*i+1]]!==undefined
+              && positionToPositionClamped[this.indices[3*i+2]]!==undefined
             ){
-                indicesClamped.push(positionToPositionClamped[indices[3*i]],
-                                    positionToPositionClamped[indices[3*i+1]],
-                                    positionToPositionClamped[indices[3*i+2]]);
+                this.clippedIndices.push(positionToPositionClamped[this.indices[3*i]],
+                                         positionToPositionClamped[this.indices[3*i+1]],
+                                         positionToPositionClamped[this.indices[3*i+2]]);
             }
         }
     }
-    var ground = new BABYLON.Mesh(name, scene);
-    ground.setVerticesData(BABYLON.VertexBuffer.PositionKind, positionsClamped, updatable);
-    ground.setIndices(indicesClamped);
-    //console.log(Math.round(Math.sqrt(positionsClamped.length/3))+"^2");
-    return ground;
 }
 
+Grid.prototype.reorderPosition = function()
+{
+    var positions = this.positions;
+    var uv2s = this.uv2s;
+
+    var radius = 0.;
+    var count = [];
+    for(var i=0; i<positions.length/3.; i++){
+        count.push({
+                       val:Math.sqrt(positions[3*i]*positions[3*i]+positions[3*i+2]*positions[3*i+2]),
+                       id: i
+        });
+    }
+    count.sort(function(a, b){
+        if (a.val<b.val){
+            return 1;
+        }
+        if (a.val>b.val){
+            return -1;
+        }
+        return 0;
+    });
+
+    this.reorderedPositions = [];
+    this.reorderedUv2s = [];
+
+    for (var i=0; i<count.length; i++){
+        this.reorderedPositions.push(positions[3*count[i].id],
+                                     positions[3*count[i].id+1],
+                                     positions[3*count[i].id+2]);
+        this.reorderedUv2s.push(uv2s[2*count[i].id],
+                                uv2s[2*count[i].id+1]);
+    }
+}
+
+Grid.prototype.makeLodMeshes = function(name, relativePositions, relativeUvs, relativeIndices,
+                                        scene, updatable)
+{
+    var positions = this.clippedPositions;
+    var uv2s = this.clippedUv2s;
+
+    var meshesPositions = [];
+    var meshesUv2s = [];
+    var meshesUvs = [];
+    var meshesIndices = [];
+
+    var verticesNumber = relativePositions.length/3;
+    for (var i=0; i<positions.length/3; i++){
+        for(var j=0; j<verticesNumber; j++){
+            meshesPositions.push(0*relativePositions[3*j]+positions[3*i],
+                                 relativePositions[3*j],//0.*relativePositions[3*j+1]+positions[3*i+1],
+                                 0*relativePositions[3*j+2]+positions[3*i+2]);
+            meshesUv2s.push(uv2s[2*i],
+                            uv2s[2*i+1]);
+            meshesUvs.push(relativeUvs[2*j],
+                           relativeUvs[2*j+1]);
+        }
+        for(var j=0; j<relativeIndices.length; j++){
+            meshesIndices.push(relativeIndices[j]+verticesNumber*i);
+        }
+    }
+
+
+    var mesh = new BABYLON.Mesh(name, scene);
+    mesh.setVerticesData(BABYLON.VertexBuffer.PositionKind, meshesPositions, updatable);
+    mesh.setVerticesData(BABYLON.VertexBuffer.UVKind, meshesUvs, updatable);
+    mesh.setVerticesData(BABYLON.VertexBuffer.UV2Kind, meshesUv2s, updatable);
+    mesh.setIndices(meshesIndices);
+    console.log(Math.round(Math.sqrt(meshesPositions.length/3))+"^2");
+
+    return mesh;
+}
+
+Grid.prototype.makeClippedMesh = function(name, scene, updatable)
+{
+    var mesh = new BABYLON.Mesh(name, scene);
+    mesh.setVerticesData(BABYLON.VertexBuffer.PositionKind, this.clippedPositions, updatable);
+    mesh.setVerticesData(BABYLON.VertexBuffer.UV2Kind, this.clippedUv2s, updatable);
+    mesh.setIndices(this.clippedIndices);
+    //console.log(Math.round(Math.sqrt(this.clippedPositions.length/3))+"^2");
+    return mesh;
+}
 
 
 

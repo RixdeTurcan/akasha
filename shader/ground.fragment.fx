@@ -28,52 +28,36 @@ uniform vec3 uPlayerPos;
 #ifdef DIFFUSE_NORMAL_1
   uniform sampler2D uDiffuseNormal1Sampler;
   float uDiffuseNormal1UvFactor = 100.;
-  float uDiffuseNormal1Limit = -1.;
-  float uDiffuseNormal1Slope = 0.;
 #endif
 #ifdef DIFFUSE_FAR_1
   uniform sampler2D uDiffuseFar1Sampler;
   float uDiffuseFar1UvFactor = 100.;
-  float uDiffuseFar1Limit = -1.;
-  float uDiffuseFar1Slope = 0.;
 #endif
 
 #ifdef DIFFUSE_2
   uniform sampler2D uDiffuse2Sampler;
-  float uDiffuse1To2Height = 110.;
-  float uDiffuse1To2Slope = 60.;
   float uDiffuse2UvFactor = 100.;
 #endif
 #ifdef DIFFUSE_NORMAL_2
   uniform sampler2D uDiffuseNormal2Sampler;
   float uDiffuseNormal2UvFactor = 100.;
-  float uDiffuseNormal2Limit = 0.7;
-  float uDiffuseNormal2Slope = 0.2;
 #endif
 #ifdef DIFFUSE_FAR_2
   uniform sampler2D uDiffuseFar2Sampler;
   float uDiffuseFar2UvFactor = 100.;
-  float uDiffuseFar2Limit = 4000.;
-  float uDiffuseFar2Slope = 500.;
 #endif
 
 #ifdef DIFFUSE_3
   uniform sampler2D uDiffuse3Sampler;
-  float uDiffuse2To3Height = 700.;
-  float uDiffuse2To3Slope = 200.;
   float uDiffuse3UvFactor = 100.;
 #endif
 #ifdef DIFFUSE_NORMAL_3
   uniform sampler2D uDiffuseNormal3Sampler;
   float uDiffuseNormal3UvFactor = 100.;
-  float uDiffuseNormal3Limit = 0.5;
-  float uDiffuseNormal3Slope = 0.3;
 #endif
 #ifdef DIFFUSE_FAR_3
   uniform sampler2D uDiffuseFar3Sampler;
   float uDiffuseFar3UvFactor = 100.;
-  float uDiffuseFar3Limit = -1.;
-  float uDiffuseFar3Slope = 0.;
 #endif
 
 // Fog
@@ -115,7 +99,7 @@ void main(void) {
     #ifdef LIGHT0_TYPE_DIR
       lightVectorW = normalize(-uLightData0.xyz);
     #endif
-    diffuseColor += uLightDiffuse0 * computeDiffuseFactor(lightVectorW, normal, 1.5, 0.25);
+    diffuseColor += uLightDiffuse0 * computeDiffuseFactor(lightVectorW, normal, 0.7, 0.5);
   #endif
   #ifdef LIGHT1
     #ifdef LIGHT1_TYPE_POINT
@@ -124,51 +108,20 @@ void main(void) {
     #ifdef LIGHT1_TYPE_DIR
       lightVectorW = normalize(-uLightData1.xyz);
     #endif
-    diffuseColor += uLightDiffuse1 * computeDiffuseFactor(lightVectorW, normal, 1.5, 0.25);
+    diffuseColor += uLightDiffuse1 * computeDiffuseFactor(lightVectorW, normal, 0.7, 0.5);
   #endif
 
 
   //Compute diffuse factors
-  #ifdef DIFFUSE_1
-    float diffuseFactor1 = 1.;
-
-    #ifdef DIFFUSE_2
-      float diffuseFactor2 = smoothstep(uDiffuse1To2Height+vDiffuseHeightOffset-uDiffuse1To2Slope, uDiffuse1To2Height+vDiffuseHeightOffset+uDiffuse1To2Slope, vVertexPosInWorld.y);
-      diffuseFactor1 *= 1. - diffuseFactor2;
-
-      #ifdef DIFFUSE_3
-        float diffuseFactor3 = smoothstep(uDiffuse2To3Height+vDiffuseHeightOffset-uDiffuse2To3Slope, uDiffuse2To3Height+vDiffuseHeightOffset+uDiffuse2To3Slope, vVertexPosInWorld.y);
-        diffuseFactor2 *= 1. - diffuseFactor3;
-
-      #endif
-    #endif
-  #endif
+  vec3 diffuseFactors = computeDiffuseFactors(vVertexPosInWorld.y-vDiffuseHeightOffset);
 
 
   //Compute diffuse normal factors
   float cosNormalAngle = dot(normal, vec3(0., 1., 0.));
-  #ifdef DIFFUSE_NORMAL_1
-    float diffuseNormal1Factor = smoothstep(uDiffuseNormal1Limit+uDiffuseNormal1Slope, uDiffuseNormal1Limit-uDiffuseNormal1Slope, cosNormalAngle);
-  #endif
-  #ifdef DIFFUSE_NORMAL_2
-    float diffuseNormal2Factor = smoothstep(uDiffuseNormal2Limit+uDiffuseNormal2Slope, uDiffuseNormal2Limit-uDiffuseNormal2Slope, cosNormalAngle);
-  #endif
-  #ifdef DIFFUSE_NORMAL_3
-    float diffuseNormal3Factor = smoothstep(uDiffuseNormal3Limit+uDiffuseNormal3Slope, uDiffuseNormal3Limit-uDiffuseNormal3Slope, cosNormalAngle);
-  #endif
-
+  vec3 diffuseNormalFactors = computeDiffuseNormalFactors(cosNormalAngle);
 
   //Compute diffuse far factors
-  #ifdef DIFFUSE_FAR_1
-    float diffuseFar1Factor = smoothstep(uDiffuseFar1Limit-uDiffuseFar1Slope, uDiffuseFar1Limit+uDiffuseFar1Slope, eyeToVertexDist);
-  #endif
-  #ifdef DIFFUSE_FAR_2
-    float diffuseFar2Factor = smoothstep(uDiffuseFar2Limit-uDiffuseFar2Slope, uDiffuseFar2Limit+uDiffuseFar2Slope, eyeToVertexDist);
-  #endif
-  #ifdef DIFFUSE_FAR_3
-    float diffuseFar3Factor = smoothstep(uDiffuseFar3Limit-uDiffuseFar3Slope, uDiffuseFar3Limit+uDiffuseFar3Slope, eyeToVertexDist);
-  #endif
-
+  vec3 diffuseFarFactors = computeDiffuseFarFactors(eyeToVertexDist);
 
   //Compute diffuse uvs
   #ifdef DIFFUSE_1
@@ -206,66 +159,66 @@ void main(void) {
   vec3 diffuseBaseColor = vec3(0., 0., 0.);
   vec3 diffuseTex = vec3(0., 0., 0.);
   #ifdef DIFFUSE_1
-    if (diffuseFactor1>0.)
+    if (diffuseFactors.x>0.)
     {
       diffuseTex = texture2D(uDiffuse1Sampler, diffuse1Uv).rgb;
       #ifdef DIFFUSE_FAR_1
-        diffuseTex = mix(diffuseTex, texture2D(uDiffuseFar1Sampler, diffuseFar1Uv).rgb, diffuseFar1Factor);
+        diffuseTex = mix(diffuseTex, texture2D(uDiffuseFar1Sampler, diffuseFar1Uv).rgb, diffuseFarFactors.x);
       #endif
       #ifdef DIFFUSE_NORMAL_1
-        diffuseTex = mix(diffuseTex, texture2D(uDiffuseNormal1Sampler, diffuseNormal1Uv).rgb, diffuseNormal1Factor);
+        diffuseTex = mix(diffuseTex, texture2D(uDiffuseNormal1Sampler, diffuseNormal1Uv).rgb, diffuseNormalFactors.x);
       #endif
       diffuseBaseColor = diffuseTex;
     }
     #ifdef DIFFUSE_2
-      if (diffuseFactor2>0.)
+      if (diffuseFactors.y>0.)
       {
-        if (diffuseFactor1>0.)
+        if (diffuseFactors.x>0.)
         {
           diffuseTex = texture2D(uDiffuse2Sampler, diffuse2Uv).rgb;
           #ifdef DIFFUSE_FAR_2
-            diffuseTex = mix(diffuseTex, texture2D(uDiffuseFar2Sampler, diffuseFar2Uv).rgb, diffuseFar2Factor);
+            diffuseTex = mix(diffuseTex, texture2D(uDiffuseFar2Sampler, diffuseFar2Uv).rgb, diffuseFarFactors.y);
           #endif
           #ifdef DIFFUSE_NORMAL_2
-            diffuseTex = mix(diffuseTex, texture2D(uDiffuseNormal2Sampler, diffuseNormal2Uv).rgb, diffuseNormal2Factor);
+            diffuseTex = mix(diffuseTex, texture2D(uDiffuseNormal2Sampler, diffuseNormal2Uv).rgb, diffuseNormalFactors.y);
           #endif
 
-          diffuseBaseColor = mix(diffuseBaseColor, diffuseTex , diffuseFactor2);
+          diffuseBaseColor = mix(diffuseBaseColor, diffuseTex , diffuseFactors.y);
         }
         else
         {
           diffuseTex = texture2D(uDiffuse2Sampler, diffuse2Uv).rgb;
           #ifdef DIFFUSE_FAR_2
-            diffuseTex = mix(diffuseTex, texture2D(uDiffuseFar2Sampler, diffuseFar2Uv).rgb, diffuseFar2Factor);
+            diffuseTex = mix(diffuseTex, texture2D(uDiffuseFar2Sampler, diffuseFar2Uv).rgb, diffuseFarFactors.y);
           #endif
           #ifdef DIFFUSE_NORMAL_2
-            diffuseTex = mix(diffuseTex, texture2D(uDiffuseNormal2Sampler, diffuseNormal2Uv).rgb, diffuseNormal2Factor);
+            diffuseTex = mix(diffuseTex, texture2D(uDiffuseNormal2Sampler, diffuseNormal2Uv).rgb, diffuseNormalFactors.y);
           #endif
           diffuseBaseColor = diffuseTex;
         }
       }
       #ifdef DIFFUSE_3
-        if (diffuseFactor3>0.)
+        if (diffuseFactors.z>0.)
         {
-          if (diffuseFactor2>0.)
+          if (diffuseFactors.y>0.)
           {
             diffuseTex = texture2D(uDiffuse3Sampler, diffuse3Uv).rgb;
             #ifdef DIFFUSE_FAR_3
-              diffuseTex = mix(diffuseTex, texture2D(uDiffuseFar3Sampler, diffuseFar3Uv).rgb, diffuseFar3Factor);
+              diffuseTex = mix(diffuseTex, texture2D(uDiffuseFar3Sampler, diffuseFar3Uv).rgb, diffuseFarFactors.z);
             #endif
             #ifdef DIFFUSE_NORMAL_3
-              diffuseTex = mix(diffuseTex, texture2D(uDiffuseNormal3Sampler, diffuseNormal3Uv).rgb, diffuseNormal3Factor);
+              diffuseTex = mix(diffuseTex, texture2D(uDiffuseNormal3Sampler, diffuseNormal3Uv).rgb, diffuseNormalFactors.z);
             #endif
-            diffuseBaseColor = mix(diffuseBaseColor, diffuseTex, diffuseFactor3);
+            diffuseBaseColor = mix(diffuseBaseColor, diffuseTex, diffuseFactors.z);
           }
           else
           {
             diffuseTex = texture2D(uDiffuse3Sampler, diffuse3Uv).rgb;
             #ifdef DIFFUSE_FAR_3
-              diffuseTex = mix(diffuseTex, texture2D(uDiffuseFar3Sampler, diffuseFar3Uv).rgb, diffuseFar3Factor);
+              diffuseTex = mix(diffuseTex, texture2D(uDiffuseFar3Sampler, diffuseFar3Uv).rgb, diffuseFarFactors.z);
             #endif
             #ifdef DIFFUSE_NORMAL_3
-              diffuseTex = mix(diffuseTex, texture2D(uDiffuseNormal3Sampler, diffuseNormal3Uv).rgb, diffuseNormal3Factor);
+              diffuseTex = mix(diffuseTex, texture2D(uDiffuseNormal3Sampler, diffuseNormal3Uv).rgb, diffuseNormalFactors.z);
             #endif
             diffuseBaseColor = diffuseTex;
           }
