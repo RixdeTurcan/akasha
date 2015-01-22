@@ -2,6 +2,11 @@
 uniform vec3 uEyePosInWorld;
 uniform vec3 uPlayerPos;
 
+varying vec3 vVertexPosInWorld;
+varying vec3 vNormal;
+varying float vDiffuseHeightOffset;
+
+
 // Sky
 #ifdef SKY
     uniform sampler2D uSkySampler;
@@ -36,7 +41,7 @@ uniform vec3 uPlayerPos;
 
 #ifdef DIFFUSE_2
   uniform sampler2D uDiffuse2Sampler;
-  float uDiffuse2UvFactor = 100.;
+  float uDiffuse2UvFactor = 400.;
 #endif
 #ifdef DIFFUSE_NORMAL_2
   uniform sampler2D uDiffuseNormal2Sampler;
@@ -44,7 +49,7 @@ uniform vec3 uPlayerPos;
 #endif
 #ifdef DIFFUSE_FAR_2
   uniform sampler2D uDiffuseFar2Sampler;
-  float uDiffuseFar2UvFactor = 100.;
+  float uDiffuseFar2UvFactor = 400.;
 #endif
 
 #ifdef DIFFUSE_3
@@ -65,9 +70,117 @@ uniform vec3 uPlayerPos;
   uniform vec4 uFogInfos;
 #endif
 
-varying vec3 vVertexPosInWorld;
-varying vec3 vNormal;
-varying float vDiffuseHeightOffset;
+#ifdef GRASS
+  uniform sampler2D uGrassSampler;
+
+  float uGrassHeight = 50.;
+  float uGrassPeriod = 50.;
+  float uInvGrassPeriod = 1./uGrassPeriod;
+  varying float vDeltaPos;
+
+
+  vec4 computeGrassTex(vec2 pos, float id)
+  {
+    if (pos.y>=uGrassHeight || pos.y<=0.)
+    {
+      return vec4(0., 0., 0., 0.);
+    }
+    else
+    {
+      float u = pos.x/(uGrassHeight*8.);
+      float v = pos.y/(uGrassHeight*8.);
+
+      vec2 uv = vec2(fract(u), v + floor(u)/4. + id/4.);
+
+      return texture2D(uGrassSampler, uv);
+    }
+
+  }
+
+  vec3 computeGrassColor(vec3 groundColor, float factor)
+  {
+    if (factor<=0.01)
+    {
+      return groundColor;
+    }
+
+    vec3 normal = vNormal;
+
+    vec4 color = vec4(0., 0., 0., 0.);
+
+    vec3 eyeToPosDir = normalize(uEyePosInWorld-vVertexPosInWorld);
+    vec3 eyeToPosDirInv = vec3(1./eyeToPosDir.x,
+                               1./eyeToPosDir.y,
+                               1./eyeToPosDir.z);
+
+    vec3 pos = vVertexPosInWorld + 8.*uGrassPeriod*eyeToPosDir;
+
+    vec2 signGrass = vec2(1., 1.);
+    if (eyeToPosDir.z>0.)
+    {
+      signGrass.y = -0.001;
+    }
+    if (eyeToPosDir.x>0.)
+    {
+      signGrass.x = -0.001;
+    }
+
+    float alpha = 0.;
+    for(int i=0; i<16; i++)
+    {
+      float nextPosZId = floor((pos.z+uPlayerPos.z+uGrassPeriod*signGrass.y)*uInvGrassPeriod);
+      float nextPosZ = nextPosZId*uGrassPeriod - uPlayerPos.z;
+
+      float nextPosXId = floor((pos.x+uPlayerPos.x+uGrassPeriod*signGrass.x)*uInvGrassPeriod);
+      float nextPosX = nextPosXId*uGrassPeriod - uPlayerPos.x;
+
+      float alphaX = (nextPosZ-pos.z)*eyeToPosDirInv.z;
+      float alphaZ = (nextPosX-pos.x)*eyeToPosDirInv.x;
+      bool isX = alphaZ < alphaX;
+      if (isX)
+      {
+        alpha = alphaX;
+      }
+      else
+      {
+        alpha = alphaZ;
+      }
+
+      pos += alpha*eyeToPosDir;
+
+
+      if (dot(pos-vVertexPosInWorld, normal)>0.)
+      {
+         float offsetY = computeVertexPos(pos.xz, vDeltaPos*vec2(1., 1.), uPlayerPos.xz).y;
+
+         float factor = smoothstep(0.3, 0.5, computeDiffuseFactors(offsetY).y);
+
+         if (isX)
+         {
+           color = computeGrassTex(vec2(pos.x + uPlayerPos.x, pos.y-offsetY), nextPosZId)*(1.-color.a)*factor + color;
+         }
+         else
+         {
+           color = computeGrassTex(vec2(pos.z + uPlayerPos.z, pos.y-offsetY), nextPosXId)*(1.-color.a)*factor + color;
+         }
+         if (color.a>=1.)
+         {
+           break;
+         }
+      }
+      else
+      {
+        break;
+      }
+    }
+    return mix(groundColor, color.rgb + groundColor*(1.-color.a), factor);
+
+
+  }
+
+
+#endif
+
 
 void main(void) {
   vec4 color = vec4(0., 0., 0., 1.);
@@ -115,13 +228,13 @@ void main(void) {
   //Compute diffuse factors
   vec3 diffuseFactors = computeDiffuseFactors(vVertexPosInWorld.y-vDiffuseHeightOffset);
 
-
   //Compute diffuse normal factors
   float cosNormalAngle = dot(normal, vec3(0., 1., 0.));
   vec3 diffuseNormalFactors = computeDiffuseNormalFactors(cosNormalAngle);
 
   //Compute diffuse far factors
   vec3 diffuseFarFactors = computeDiffuseFarFactors(eyeToVertexDist);
+
 
   //Compute diffuse uvs
   #ifdef DIFFUSE_1
@@ -227,6 +340,9 @@ void main(void) {
     #endif
   #endif
 
+  #ifdef GRASS
+    diffuseBaseColor = computeGrassColor(diffuseBaseColor, diffuseFactors.y*max((1.-diffuseFarFactors.y)*1.5, 0.));
+  #endif
 
   color.rgb = diffuseColor * diffuseBaseColor;
 

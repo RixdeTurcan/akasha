@@ -57,7 +57,13 @@ function Ground(camera, light){
     this.noiseTexture.wrapU = BABYLON.Texture.WRAP_ADDRESSMODE;
     this.noiseTexture.wrapV = BABYLON.Texture.WRAP_ADDRESSMODE;
     this.material.noiseTexture = this.noiseTexture;
-
+/*
+    //Grass texture
+    this.grassTexture = new BABYLON.Texture("asset/grass.png", _config.world.scene);
+    this.grassTexture.wrapU = BABYLON.Texture.WRAP_ADDRESSMODE;
+    this.grassTexture.wrapV = BABYLON.Texture.WRAP_ADDRESSMODE;
+    this.material.grassTexture = this.grassTexture;
+*/
     //diffuse 1
     this.material.diffuse1Texture = new BABYLON.Texture("asset/sand.png",
                                                        _config.world.scene);
@@ -65,23 +71,23 @@ function Ground(camera, light){
     this.material.diffuse1Texture.wrapV = BABYLON.Texture.WRAP_ADDRESSMODE;
 
     //diffuse 2
-    this.material.diffuse2Texture = new BABYLON.Texture("asset/dirt.png",
+    this.material.diffuse2Texture = new BABYLON.Texture("asset/grass_far.png",
                                                         _config.world.scene);
     this.material.diffuse2Texture.wrapU = BABYLON.Texture.WRAP_ADDRESSMODE;
     this.material.diffuse2Texture.wrapV = BABYLON.Texture.WRAP_ADDRESSMODE;
 
     //diffuse normal 2
-    this.material.diffuseNormal2Texture = new BABYLON.Texture("asset/stone.png",
+    this.material.diffuseNormal2Texture = new BABYLON.Texture("asset/dirt.png",
                                                         _config.world.scene);
     this.material.diffuseNormal2Texture.wrapU = BABYLON.Texture.WRAP_ADDRESSMODE;
     this.material.diffuseNormal2Texture.wrapV = BABYLON.Texture.WRAP_ADDRESSMODE;
-
+/*
     //Diffuse far 2
     this.material.diffuseFar2Texture = new BABYLON.Texture("asset/grass_far.png",
                                                         _config.world.scene);
     this.material.diffuseFar2Texture.wrapU = BABYLON.Texture.WRAP_ADDRESSMODE;
     this.material.diffuseFar2Texture.wrapV = BABYLON.Texture.WRAP_ADDRESSMODE;
-
+*/
     //diffuse 3
     this.material.diffuse3Texture = new BABYLON.Texture("asset/snow.png",
                                                         _config.world.scene);

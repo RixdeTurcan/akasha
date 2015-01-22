@@ -6,10 +6,10 @@ float uShanonMargin = 0.5;
 // height1, height2, height3, 0.
 // noise1, noise2, noise3, 0.,
 mat4 uIsland1Data1 = mat4(
-    6100., 9000., 14000., 13000.,
-    2000., 1000., 2500., 13000.,
-    0.735, 0.265, 1.035, 0.,
-    0.1, 0.2, 0.1, 0.
+    6100., 9000., 17000., 14000.,
+    1500., 1000., 5000., 14000.,
+    0.735, 0.265, 1.05, 0.,
+    0.1, 0.2, 0.05, 0.
 );
 
 //noiseA1, noiseA2, noiseA3,  0.
@@ -53,7 +53,7 @@ float getHeightShiftIslandI(vec2 realPos, vec2 deltaPos, mat4 uIslandIData1, mat
    vec2 center = vec2(uIslandIData1[0].a, uIslandIData1[1].a);
    float islandDist = length(realPos - center);
 
-   if (islandDist<uIslandIData1[0].z+uIslandIData2[2].a)
+   if (islandDist<uIslandIData1[0].z+uIslandIData1[1].z+uIslandIData2[2].a)
    {
 
      islandDist += getShapeNoise(realPos, deltaPos, uIslandIData2) * uIslandIData2[2].a;
@@ -95,7 +95,7 @@ float getDiffuseHeightOffset(vec2 pos, vec2 deltaPos)
 #endif
 
 #ifdef DIFFUSE_FAR_2
-  float uDiffuseFar2Limit = 4000.;
+  float uDiffuseFar2Limit = 2500.;
   float uDiffuseFar2Slope = 500.;
 #endif
 
@@ -110,17 +110,17 @@ float getDiffuseHeightOffset(vec2 pos, vec2 deltaPos)
 #endif
 
 #ifdef DIFFUSE_NORMAL_2
-  float uDiffuseNormal2Limit = 0.7;
-  float uDiffuseNormal2Slope = 0.2;
+  float uDiffuseNormal2Limit = 0.8;
+  float uDiffuseNormal2Slope = 0.1;
 #endif
 
 #ifdef DIFFUSE_NORMAL_3
-  float uDiffuseNormal3Limit = 0.5;
-  float uDiffuseNormal3Slope = 0.3;
+  float uDiffuseNormal3Limit = 0.85;
+  float uDiffuseNormal3Slope = 0.1;
 #endif
 
 #ifdef DIFFUSE_2
-  float uDiffuse1To2Height = 110.;
+  float uDiffuse1To2Height = 140.;
   float uDiffuse1To2Slope = 60.;
 #endif
 

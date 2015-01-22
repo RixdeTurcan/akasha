@@ -61,6 +61,14 @@ GroundMaterial.prototype.isReady = function (mesh) {
         }
     }
 
+    if (this.grassTexture) {
+        if (!this.grassTexture.isReady()) {
+            return false;
+        } else {
+            defines.push("#define GRASS");
+        }
+    }
+
     if (this.diffuse1Texture) {
         if (!this.diffuse1Texture.isReady()) {
             return false;
@@ -192,7 +200,7 @@ GroundMaterial.prototype.isReady = function (mesh) {
                                            'uTangentScreenDist', 'uPlayerPos',
                                            'uLightData0', 'uLightDiffuse0',
                                            'uLightData1', 'uLightDiffuse1'],
-                                           ['uNoiseSampler', 'uSkySampler',
+                                           ['uNoiseSampler', 'uSkySampler', 'uGrassSampler',
                                             'uDiffuse1Sampler', 'uDiffuse2Sampler', 'uDiffuse3Sampler',
                                             'uDiffuseFar1Sampler', 'uDiffuseFar2Sampler', 'uDiffuseFar3Sampler',
                                             'uDiffuseNormal1Sampler', 'uDiffuseNormal2Sampler', 'uDiffuseNormal3Sampler'],
@@ -229,6 +237,11 @@ GroundMaterial.prototype.bind = function (world, mesh) {
     // noise
     if (this.noiseTexture) {
         this._effect.setTexture("uNoiseSampler", this.noiseTexture);
+    }
+
+    // grass
+    if (this.grassTexture) {
+        this._effect.setTexture("uGrassSampler", this.grassTexture);
     }
 
     // diffuse 1

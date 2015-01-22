@@ -3,10 +3,15 @@ attribute vec2 uv2;
 
 uniform mat4 uViewProjection;
 uniform vec3 uPlayerPos;
+uniform vec3 uEyePosInWorld;
 
 varying vec3 vNormal;
 varying vec3 vVertexPosInWorld;
 varying float vDiffuseHeightOffset;
+
+#ifdef GRASS
+  varying float vDeltaPos;
+#endif
 
 void main(void)
 {
@@ -18,9 +23,11 @@ void main(void)
   vec2 deltaPosVec = vec2(1., 1.)*deltaPos;
 
 
-  //Floor the grid toz have constant vextex position
+  //Floor the grid to have constant vextex position
   vec3 deltaPlayerPos = mod(uPlayerPos, DeltaFloor);
+
   vec2 vertexPos = position.xz-deltaPlayerPos.xz;
+
 
   //Compute the height of the vertex
   vec3 pos = computeVertexPos(vertexPos, deltaPosVec, uPlayerPos.xz);
@@ -31,6 +38,9 @@ void main(void)
   vec3 normal = normalize(cross(pos-posX, posY-pos));
 
   //Fill some varying
+  #ifdef GRASS
+    vDeltaPos = deltaPos;
+  #endif
   vNormal = normalize(normal);
   vVertexPosInWorld = pos;
   vDiffuseHeightOffset = getDiffuseHeightOffset(pos.xz+uPlayerPos.xz, deltaPosVec);
