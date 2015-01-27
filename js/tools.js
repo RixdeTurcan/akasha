@@ -34,6 +34,27 @@ function onReady(elem, func, refreshTime)
    }
 }
 
+function replaceStandardMaterial(materials, id, newMat, mesh, isHidden, isHiddenScreen)
+{
+    var diffuseTexture = materials[id].diffuseTexture;
+    var bumpTexture = materials[id].bumpTexture;
+    var backFaceCulling = materials[id].backFaceCulling;
+    var alphaBlending = materials[id].needAlphaBlending();
+    var alphaTesting = materials[id].needAlphaTesting();
+    var alpha = materials[id].alpha;
+
+    materials[id] = newMat;
+    materials[id].diffuseTexture = diffuseTexture;
+    materials[id].bumpTexture = bumpTexture;
+    materials[id].backFaceCulling = backFaceCulling;
+    materials[id].alphaBlending = alphaBlending;
+    materials[id].alphaTesting = alphaTesting;
+    materials[id].alpha = alpha;
+
+    mesh.subMeshes[id].isHidden = isHidden;
+    mesh.subMeshes[id].isHiddenScreen = isHiddenScreen;
+}
+
 function addMaterialToMesh(material, mesh, isHidden, isHiddenScreen)
 {
     mesh.material.subMaterials.push(material);
@@ -62,16 +83,16 @@ function onBeforeRenderMultiMatMesh(texture, func){
     return function(){
         for(var i=0; i<texture.subMeshIdList.length; ++i)
         {
-            for(var j=0; j<texture.renderList[i].subMeshes.length; ++j)
+            for(var j=0; j<texture.meshList[i].subMeshes.length; ++j)
             {
                 if (j==texture.subMeshIdList[i])
                 {
-                    texture.renderList[i].subMeshes[j].isHidden = false;
+                    texture.meshList[i].subMeshes[j].isHidden = false;
                 }
                 else
                 {
-                    texture.renderList[i].subMeshes[j].previousIsHidden = texture.renderList[i].subMeshes[j].isHidden;
-                    texture.renderList[i].subMeshes[j].isHidden = true;
+                    //texture.renderList[i].subMeshes[j].previousIsHidden = texture.renderList[i].subMeshes[j].isHidden;
+                    //texture.renderList[i].subMeshes[j].isHidden = true;
                 }
             }
         }
@@ -84,15 +105,15 @@ function onAfterRenderMultiMatMesh(texture, func){
     return function(){
         for(var i=0; i<texture.subMeshIdList.length; ++i)
         {
-            for(var j=0; j<texture.renderList[i].subMeshes.length; ++j)
+            for(var j=0; j<texture.meshList[i].subMeshes.length; ++j)
             {
                 if (j==texture.subMeshIdList[i])
                 {
-                    texture.renderList[i].subMeshes[j].isHidden = true
+                    texture.meshList[i].subMeshes[j].isHidden = true;
                 }
                 else
                 {
-                    texture.renderList[i].subMeshes[j].isHidden = texture.renderList[i].subMeshes[j].previousIsHidden;
+                    //texture.renderList[i].subMeshes[j].isHidden = texture.renderList[i].subMeshes[j].previousIsHidden;
                 }
             }
         }
@@ -135,6 +156,7 @@ function createRenderTargetTexture(name, sampling, scene, configs,
     var tex = new BABYLON.RenderTargetTexture(name, sampling, scene, configs);
     tex.material = material;
     tex.subMeshIdList = [];
+    tex.meshList = [];
     renderMaterial[name] = tex;
 
     if (mesh == "passthrough"){
@@ -147,6 +169,7 @@ function createRenderTargetTexture(name, sampling, scene, configs,
         };
     }else if(mesh instanceof BABYLON.Mesh){
         tex.renderList.push(mesh);
+        tex.meshList.push(mesh);
         convertIntoMultiMaterialMesh(mesh, scene);
         addMaterialToMesh(material, mesh, true, true);
         tex.subMeshIdList.push(mesh.subMeshes.length-1);
@@ -854,7 +877,7 @@ Grid.prototype.makeLodMeshes = function(name, relativePositions, relativeUvs, re
     mesh.setVerticesData(BABYLON.VertexBuffer.UVKind, meshesUvs, updatable);
     mesh.setVerticesData(BABYLON.VertexBuffer.UV2Kind, meshesUv2s, updatable);
     mesh.setIndices(meshesIndices);
-    console.log(Math.round(Math.sqrt(meshesPositions.length/3))+"^2");
+    //console.log(Math.round(Math.sqrt(meshesPositions.length/3))+"^2");
 
     return mesh;
 }
@@ -870,8 +893,73 @@ Grid.prototype.makeClippedMesh = function(name, scene, updatable)
 }
 
 
+function createImpostorTextures(dir, name, textureSize, renderMat, scene)
+{
+    var tex = {
+      colorMap: null,
+      normalMap: null
+    };
 
+    tex.colorMap = createRenderTargetTexture(name+"_color_texture",
+                                             textureSize,
+                                             scene,
+                                             {
+                                                 generateMipMaps: true,
+                                                 enableTextureFloat: false,
+                                                 generateDepthBuffer: false
+                                             },
+                                             null,
+                                             renderMat,
+                                             null);
 
+    tex.normalMap = createRenderTargetTexture(name+"_normal_texture",
+                                             textureSize,
+                                             scene,
+                                             {
+                                                 generateMipMaps: true,
+                                                 enableTextureFloat: false,
+                                                 generateDepthBuffer: false
+                                             },
+                                             null,
+                                             renderMat,
+                                             null);
+
+    BABYLON.SceneLoader.ImportMesh("", dir, name+".babylon", scene, function (newMeshes, particleSystems) {
+        for( var i=0; i<newMeshes.length; i++){
+          convertIntoMultiMaterialMesh(newMeshes[i], scene);
+          newMeshes[i].isInFrustum = function(){return true;};
+
+          var nbSubMeshes = newMeshes[i].subMeshes.length;
+          for (var j=0; j<nbSubMeshes; j++){
+            newMeshes[i].subMeshes[j].isInFrustum = function(){return true;};
+
+            //Duplicate the materials (we have 2 maps)
+            newMeshes[i].subMeshes[j].clone(newMeshes[i], newMeshes[i]);
+            newMeshes[i].subMeshes[j+nbSubMeshes].materialIndex+=nbSubMeshes;
+            newMeshes[i].material.subMaterials.push(newMeshes[i].material.subMaterials[j].clone());
+            //Add the color map material
+            replaceStandardMaterial(newMeshes[i].material.subMaterials, j,
+                                    new ImpostorGeneratorMaterial(name+"_"+j+"_color", scene, true),
+                                    newMeshes[i], true, true);
+            tex.colorMap.subMeshIdList.push(j);
+            tex.colorMap.meshList.push(newMeshes[i]);
+
+            //Add the normal map material
+            replaceStandardMaterial(newMeshes[i].material.subMaterials, j+nbSubMeshes,
+                                    new ImpostorGeneratorMaterial(name+"_"+j+"_normal", scene,
+                                                                  false),
+                                    newMeshes[i], true, true);
+            tex.normalMap.subMeshIdList.push(j+nbSubMeshes);
+            tex.normalMap.meshList.push(newMeshes[i]);
+          }
+          //Add the mesh to the render list
+          tex.colorMap.renderList.push(newMeshes[i]);
+          tex.normalMap.renderList.push(newMeshes[i]);
+        }
+    });
+
+    return tex;
+}
 
 
 

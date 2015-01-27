@@ -31,6 +31,8 @@
     <script type="text/javascript" src="js/material/sky.js"></script>
     <script type="text/javascript" src="js/material/texture.js"></script>
     <script type="text/javascript" src="js/material/copy.js"></script>
+    <script type="text/javascript" src="js/material/impostor_generator.js"></script>
+    <script type="text/javascript" src="js/material/sprites.js"></script>
 
     <script type="text/javascript" src="js/config.js"></script>
     <script type="text/javascript" src="js/world.js"></script>

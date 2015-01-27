@@ -47,19 +47,19 @@ var getSamplingParameters = function (samplingMode, generateMipMaps, gl, enableT
 BABYLON.Engine.prototype.clear = function (color, backBuffer, depthStencil) {
     this.applyStates();
 
-    //this._gl.clearColor(color.r, color.g, color.b, color.a !== undefined ? color.a : 1.0);
-   // if (this._depthCullingState.depthMask) {
-    //    this._gl.clearDepth(1.0);
-   // }
-   // var mode = 0;
+    this._gl.clearColor(color.r, color.g, color.b, color.a !== undefined ? color.a : 0.0); //1.0
+    if (this._depthCullingState.depthMask) {
+        this._gl.clearDepth(1.0);
+    }
+    var mode = 0;
 
-   // if (backBuffer)
-    //    mode |= this._gl.COLOR_BUFFER_BIT;
+    if (backBuffer)
+        mode |= this._gl.COLOR_BUFFER_BIT;
 
-    //if (depthStencil && this._depthCullingState.depthMask)
-    //    mode |= this._gl.DEPTH_BUFFER_BIT;
+    if (depthStencil && this._depthCullingState.depthMask)
+        mode |= this._gl.DEPTH_BUFFER_BIT;
 
-    //this._gl.clear(mode);
+    this._gl.clear(mode);
 };
 
 BABYLON.Engine.prototype.createRenderTargetTexture = function (size, options) {
@@ -206,7 +206,6 @@ BABYLON.RenderTargetTexture.prototype.render = function (useCameraPostProcess) {
             engine.clear(scene.clearColor, true, true);
 
             this._renderingManager.reset();
-
             for (var meshIndex = 0; meshIndex < this.renderList.length; meshIndex++) {
                 var mesh = this.renderList[meshIndex];
 
@@ -643,3 +642,83 @@ BABYLON.Engine.prototype.createTexture = function (url, noMipmap, invertY, scene
 
     return texture;
 };
+
+BABYLON.SceneLoader.ImportMesh = function (meshesNames, rootUrl, sceneFilename, scene, onsuccess, progressCallBack, onerror) {
+    var _this = this;
+    var manifestChecked = function (success) {
+        scene.database = database;
+
+        var plugin = _this._getPluginForFilename(sceneFilename);
+
+        var importMeshFromData = function (data) {
+            var meshes = [];
+            var particleSystems = [];
+            var skeletons = [];
+
+            try  {
+                if (!plugin.importMesh(meshesNames, scene, data, rootUrl, meshes, particleSystems, skeletons)) {
+                    if (onerror) {
+                        onerror(scene);
+                    }
+
+                    return;
+                }
+            } catch (e) {
+                if (onerror) {
+                    onerror(scene);
+                }
+
+                return;
+            }
+
+            if (onsuccess) {
+                scene.importedMeshesFiles.push(rootUrl + sceneFilename);
+                onsuccess(meshes, particleSystems, skeletons);
+            }
+        };
+
+        if (sceneFilename.substr && sceneFilename.substr(0, 5) === "data:") {
+
+            importMeshFromData(sceneFilename.substr(5));
+            return;
+        }
+
+        BABYLON.Tools.LoadFile(rootUrl + sceneFilename, function (data) {
+            data = data.replace(/(,)\1+/gi, ",");  //+++
+            importMeshFromData(data);
+        }, progressCallBack, database);
+    };
+
+
+    var database = new BABYLON.Database(rootUrl + sceneFilename, manifestChecked);
+};
+
+
+BABYLON.Geometry.prototype._applyToMesh = function (mesh) {
+    var numOfMeshes = this._meshes.length;
+
+    for (var kind in this._vertexBuffers) {
+        if (numOfMeshes === 1) {
+            this._vertexBuffers[kind].create();
+        }
+        this._vertexBuffers[kind]._buffer.references = numOfMeshes;
+
+        if (kind === BABYLON.VertexBuffer.PositionKind) {
+            mesh._resetPointsArrayCache();
+
+            //var extend = BABYLON.Tools.ExtractMinAndMax(this._vertexBuffers[kind].getData(), 0, this._totalVertices);
+            //mesh._boundingInfo = new BABYLON.BoundingInfo(extend.minimum, extend.maximum);
+            mesh._boundingInfo = new BABYLON.BoundingInfo(new BABYLON.Vector3(-10000., -10000., -10000.), new BABYLON.Vector3(10000., 10000., 10000.)); //+++
+
+            mesh._createGlobalSubMesh();
+        }
+    }
+
+
+            if (numOfMeshes === 1 && this._indices) {
+                this._indexBuffer = this._engine.createIndexBuffer(this._indices);
+            }
+            if (this._indexBuffer) {
+                this._indexBuffer.references = numOfMeshes;
+            }
+        };

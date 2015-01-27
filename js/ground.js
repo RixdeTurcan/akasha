@@ -7,6 +7,9 @@ function Ground(camera, light){
 
     this.material = new GroundMaterial("GroundMaterial", _config.world.scene, this);
 
+    this.treeImpostorTex = createImpostorTextures('asset/pine/', 'Eucalyptus', 512,
+                                                  this.material, _config.world.scene);
+
     this.nbQuadrant = 40;
     this.meshToDisplay = 0;
 
@@ -15,6 +18,7 @@ function Ground(camera, light){
     this.grid.createGrid(20., 100, 100, 4, 1);
 
 
+    //Ground
     for(var i = 0; i < this.nbQuadrant; i++){
         var beta = 2.*_pi*i/this.nbQuadrant;
         var betaRange = _pi/5.0;
@@ -29,6 +33,47 @@ function Ground(camera, light){
         this.mesh[i].subMeshes[0].isInFrustum = function(){return true;};
         this.mesh[i].subMeshes[0].isHiddenScreen = true;
     }
+
+
+    //Trees
+    this.grid.createGrid(400., 40, 40, 1, 1);
+    this.grid.reorderPosition();
+    this.treeMesh = [];
+
+    var spritePos = [0, 0, 0,
+                     0, 0, 0,
+                     0, 0, 0,
+                     0, 0, 0];
+    var spiteUv = [0, 0,
+                   0, 1,
+                   1, 0,
+                   1, 1];
+    var spriteIndices = [0, 1, 2,
+                         2, 3, 1];
+
+    this.treeMaterial = new SpritesMaterial("TreeMaterial", _config.world.scene, this);
+
+    for(var i = 0; i < this.nbQuadrant; i++){
+        var beta = 2.*_pi*i/this.nbQuadrant;
+        var betaRange = _pi/4.0;
+
+        this.grid.clip(beta+_pi, betaRange, -750., 750., true, true);
+
+        this.treeMesh[i] = this.grid.makeLodMeshes("trees"+i, spritePos, spiteUv, spriteIndices,
+                                                   _config.world.scene, false);
+
+        this.treeMesh[i].material = new BABYLON.MultiMaterial("treeMultiMat", _config.world.scene);
+        this.treeMesh[i].subMeshes = [];
+        addMaterialToMesh(this.treeMaterial, this.treeMesh[i], false, false);
+        this.treeMesh[i].isInFrustum = function(){return true;};
+        this.treeMesh[i].subMeshes[0].isInFrustum = function(){return true;};
+        this.treeMesh[i].subMeshes[0].isHiddenScreen = true;
+    }
+
+    this.treeMaterial.diffuseTexture = this.treeImpostorTex.colorMap;
+    this.treeMaterial.bumpTexture = this.treeImpostorTex.normalMap;
+
+
 /*
     var scaling = 1.;
     this.meshLowDef = createGrid("ground", parseInt(_config.ground.sampling.gridLowDef)-1,
@@ -53,10 +98,11 @@ function Ground(camera, light){
 */
 
     //Noise texture
-    this.noiseTexture = new BABYLON.Texture("asset/noise.png", _config.world.scene);
+    this.noiseTexture = new BABYLON.Texture("asset/noise.png", _config.world.scene, true);
     this.noiseTexture.wrapU = BABYLON.Texture.WRAP_ADDRESSMODE;
     this.noiseTexture.wrapV = BABYLON.Texture.WRAP_ADDRESSMODE;
     this.material.noiseTexture = this.noiseTexture;
+    this.treeMaterial.noiseTexture = this.noiseTexture;
 /*
     //Grass texture
     this.grassTexture = new BABYLON.Texture("asset/grass.png", _config.world.scene);
@@ -189,6 +235,7 @@ Ground.prototype.addWavedataTexture = function(texture)
 Ground.prototype.addSkyTexture = function(skyTexture)
 {
     this.material.skyTexture = skyTexture;
+    this.treeMaterial.skyTexture = skyTexture;
 }
 
 Ground.prototype.addShadowTexture = function(shadowTexture)
@@ -213,7 +260,10 @@ Ground.prototype.update = function()
 */
 
     this.mesh[this.meshToDisplay].subMeshes[0].isHiddenScreen = true;
-    this.meshToDisplay = Math.round((_config.player.angle.mod(2.*_pi))/(2.*_pi/this.nbQuadrant)).mod(this.nbQuadrant);
-    this.mesh[this.meshToDisplay].subMeshes[0].isHiddenScreen = false;
+    this.treeMesh[this.meshToDisplay].subMeshes[0].isHiddenScreen = true;
 
+    this.meshToDisplay = Math.round((_config.player.angle.mod(2.*_pi))/(2.*_pi/this.nbQuadrant)).mod(this.nbQuadrant);
+
+    this.mesh[this.meshToDisplay].subMeshes[0].isHiddenScreen = false;
+    this.treeMesh[this.meshToDisplay].subMeshes[0].isHiddenScreen = false;
 }

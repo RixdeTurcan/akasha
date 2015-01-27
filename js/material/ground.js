@@ -45,6 +45,12 @@ GroundMaterial.prototype.needAlphaTesting = function () {
 // Methods
 GroundMaterial.prototype.getRenderTargetTextures = function () {
     this._renderTargets.reset();
+    if (this["Eucalyptus_color_texture"] && this["Eucalyptus_color_texture"].isRenderTarget) {
+        this._renderTargets.push(this["Eucalyptus_color_texture"]);
+    }
+    if (this["Eucalyptus_normal_texture"] && this["Eucalyptus_normal_texture"].isRenderTarget) {
+        this._renderTargets.push(this["Eucalyptus_normal_texture"]);
+    }
 
     return this._renderTargets;
 };
