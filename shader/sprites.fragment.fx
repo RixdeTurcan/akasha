@@ -1,5 +1,3 @@
-varying vec2 vUv;
-
 uniform vec3 uEyePosInWorld;
 uniform vec3 uPlayerPos;
 
@@ -38,8 +36,35 @@ uniform vec3 uPlayerPos;
 
 varying vec3 vVertexPosInWorld;
 
-void main(void) {
+uniform float uNbRows;
+uniform float uNbCols;
+
+varying float vAngleFactor;
+varying vec2 vUv1;
+varying vec2 vUv2;
+
+vec4 textureSprite2D(sampler2D sampler)
+{
+  vec4 t1 = texture2D(sampler, vUv1);
+  vec4 t2 = texture2D(sampler, vUv2);
+  vec4 tMix = mix(t1, t2, vAngleFactor);
+  return tMix;
+}
+
+
+void main() {
   vec4 color = vec4(0., 0., 0., 0.);
+
+  //Compute the diffuseBaseColor
+  vec4 diffuseBaseColor = vec4(0., 0., 0., 0.);
+  #ifdef DIFFUSE
+    diffuseBaseColor = textureSprite2D(uDiffuseSampler);
+  #endif
+  if (diffuseBaseColor.a<0.1){
+    gl_FragColor = color;
+    return;
+  }
+
 
   //Compute the direction and the distance eye -> vertex
   vec3 eyeToVertexDir = uEyePosInWorld-vVertexPosInWorld;
@@ -55,22 +80,17 @@ void main(void) {
     skyColor = skyTex.rgb;
   #endif
 
-  //Compute the diffuseBaseColor
-  vec4 diffuseBaseColor = vec4(0., 0., 0., 0.);
-  #ifdef DIFFUSE
-    diffuseBaseColor = texture2D(uDiffuseSampler, vUv);
-  #endif
 
   //Compute the normal
   vec3 normal = vec3(0., 1., 0.);
   #ifdef BUMP
-      vec3 perturbNormal = texture2D(uBumpSampler, vUv).rgb*2.-1.;
+      vec3 perturbNormal = textureSprite2D(uBumpSampler).rgb*2.-1.;
       mat3 tbn = mat3(vTangent, vBitangent, vNormal);
 
       normal = tbn * perturbNormal;
   #endif
 
-  //Compute the light diffuse color
+  //Compute the light color
   vec3 diffuseColor = vec3(0.0, 0.0, 0.0);
   vec3 lightVectorW;
   #ifdef LIGHT0
@@ -80,7 +100,7 @@ void main(void) {
     #ifdef LIGHT0_TYPE_DIR
       lightVectorW = normalize(-uLightData0.xyz);
     #endif
-    diffuseColor += uLightDiffuse0 * computeDiffuseFactor(lightVectorW, normal, 0.7, 0.5);
+    diffuseColor += uLightDiffuse0 * computeDiffuseFactor(lightVectorW, normal, 0.9, 0.4);
   #endif
   #ifdef LIGHT1
     #ifdef LIGHT1_TYPE_POINT
@@ -89,15 +109,23 @@ void main(void) {
     #ifdef LIGHT1_TYPE_DIR
       lightVectorW = normalize(-uLightData1.xyz);
     #endif
-    diffuseColor += uLightDiffuse1 * computeDiffuseFactor(lightVectorW, normal, 0.7, 0.5);
+    diffuseColor += uLightDiffuse1 * computeDiffuseFactor(lightVectorW, normal, 0.9, 0.4);
   #endif
 
   color = vec4(diffuseColor, 1.) * diffuseBaseColor;
+
+
+
 
   //Compute the fog color
   #ifdef FOG
     color.rgb = mix(clamp(skyColor, 0., 1.), color.rgb, CalcFogFactor(eyeToVertexDist, uFogInfos));
   #endif
 
+  //Premultiplied alpha
+  #ifdef PREMUL_ALPHA
+    //color.rgb *= color.a;
+    color.a *= color.a * color.a;
+  #endif
   gl_FragColor = color;
 }

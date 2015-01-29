@@ -21,3 +21,7 @@ float computeOctaves(vec3 amplitudes, vec2 period, vec2 param, vec2 deltaPos, fl
       return  0.;
   #endif
 }
+
+float fastRand(vec2 pos){
+    return fract(sin(dot(pos.xy ,vec2(12.9898,78.233))) * 4.37585453)*2.-1.;
+}

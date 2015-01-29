@@ -6,10 +6,10 @@ float uShanonMargin = 0.5;
 // height1, height2, height3, 0.
 // noise1, noise2, noise3, 0.,
 mat4 uIsland1Data1 = mat4(
-    6100., 9000., 17000., 14000.,
-    1500., 1000., 5000., 14000.,
-    0.735, 0.265, 1.05, 0.,
-    0.1, 0.2, 0.05, 0.
+    15000., 25000., 40000., 30000.,
+    2000., 2000., 10000., 30000.,
+    0.7, 0.15, 1.05, 0.,
+    0.15, 0.2, 0.05, 0.
 );
 
 //noiseA1, noiseA2, noiseA3,  0.
@@ -19,7 +19,7 @@ mat4 uIsland1Data1 = mat4(
 mat4 uIsland1Data2 = mat4(
     0.4, 0.25, 0.15, 0.,
     0., 0., 0., 0.,
-    0.7, 0.2, 0.1, 8000.,
+    0.7, 0.2, 0.1, 30000.,
     0.0002, 0.0002, 0.001, 0.001
 );
 
@@ -27,7 +27,7 @@ float uIslandDiffuseNoiseAmplitude = 150.;
 vec3 uIslandDiffuseNoiseAmplitudes = vec3(0.6, 0.2, 0.2);
 vec2 uIslandDiffuseNoisePeriod = vec2(0.002, 0.002);
 
-float uMaxHeight = 1300.;
+float uMaxHeight = 1700.;
 
 
 //Get height noise
@@ -116,7 +116,7 @@ float getDiffuseHeightOffset(vec2 pos, vec2 deltaPos)
 
 #ifdef DIFFUSE_NORMAL_3
   float uDiffuseNormal3Limit = 0.85;
-  float uDiffuseNormal3Slope = 0.1;
+  float uDiffuseNormal3Slope = 0.15;
 #endif
 
 #ifdef DIFFUSE_2

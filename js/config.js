@@ -52,7 +52,7 @@ function World_Config(){
     this.viewMat = new BABYLON.Matrix();
 
     this.fogMode = BABYLON.Scene.FOGMODE_EXP2;
-    this.fogDensity = 0.0001;
+    this.fogDensity = 0.00008;
 
     this.realFps = 30.;
     this.fps = this.realFps * 1.33;

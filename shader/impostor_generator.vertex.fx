@@ -2,8 +2,8 @@ attribute vec3 position;
 attribute vec2 uv;
 attribute vec3 normal;
 
-vec3 uBoxLimits = vec3(3.8, 3.8, 5.);
-vec3 uInvBoxLimits = 1./uBoxLimits;
+uniform vec3 uInvBoxLimits;
+uniform float uOffsetY;
 
 #ifdef DIFFUSE
   uniform mat4 uDiffuseMatrix;
@@ -19,6 +19,12 @@ vec3 uInvBoxLimits = 1./uBoxLimits;
     varying vec3 vBitangent;
   #endif
 #endif
+
+uniform float uAngle;
+uniform float uRow;
+uniform float uCol;
+uniform float uNbRows;
+uniform float uNbCols;
 
 void main(void)
 {
@@ -45,5 +51,16 @@ void main(void)
     #endif
   #endif
 
-  gl_Position = vec4(position*uInvBoxLimits, 1.);
+  vec3 pos = position;
+  pos.x = position.x*cos(uAngle)-position.z*sin(uAngle);
+  pos.z = position.x*sin(uAngle)+position.z*cos(uAngle);
+
+  pos.y += uOffsetY;
+
+  vec3 screenPos = pos*uInvBoxLimits;
+
+  screenPos.x = ((screenPos.x*0.5+0.5+uRow)/uNbRows)*2.-1.;
+  screenPos.y = ((screenPos.y*0.5+0.5+uCol)/uNbCols)*2.-1.;
+
+  gl_Position = vec4(screenPos, 1.);
 }

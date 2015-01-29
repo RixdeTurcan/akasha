@@ -1,0 +1,20 @@
+	Babylon.js Exporter version: 1.1.0, Blender version: 2.73 (sub 0)
+========= Conversion from Blender to Babylon.js =========
+	Python World class constructor completed
+	WARNING: No active camera has been assigned, or is not in a currently selected Blender layer
+	processing begun of material:  arvore.Arvore
+	processing begun of material:  arvore.Galho-Tex
+	WARNING: The following lamp not visible in scene thus ignored: Lamp.002
+	processing begun of light:  Lamp.001
+	processing begun of light:  Lamp
+	processing begun of mesh:  Galho Tex.044
+		processing begun of multimaterial:  arvore.Multimaterial#0
+		num positions      :  2464
+		num normals        :  2464
+		num uvs            :  4928
+		num uvs2           :  0
+		num colors         :  0
+		num indices        :  8235
+========= Writing of scene file started =========
+========= Writing of scene file completed =========
+========= end of processing =========

@@ -7,15 +7,23 @@ function Ground(camera, light){
 
     this.material = new GroundMaterial("GroundMaterial", _config.world.scene, this);
 
-    this.treeImpostorTex = createImpostorTextures('asset/pine/', 'Eucalyptus', 512,
-                                                  this.material, _config.world.scene);
+    this.treeTex = {}
+    this.treeTex.Eucalyptus = createImpostorTextures('asset/pine/', 'Eucalyptus', 4096, 8, 8,
+                                                     this.material, _config.world.scene);
+/*
+    this.treeTex.arvore = createImpostorTextures('asset/pine2/', 'arvore', 512, 1, 1,
+                                                     this.material, _config.world.scene);
+
+*/
+    this.treeMaterial = new SpritesMaterial("TreeMaterial", _config.world.scene, 8, 8);
+
 
     this.nbQuadrant = 40;
     this.meshToDisplay = 0;
 
     this.mesh = [];
     this.grid = new Grid();
-    this.grid.createGrid(20., 100, 100, 4, 1);
+    this.grid.createGrid(20., 100, 70, 5, 1);
 
 
     //Ground
@@ -36,7 +44,7 @@ function Ground(camera, light){
 
 
     //Trees
-    this.grid.createGrid(400., 40, 40, 1, 1);
+    this.grid.createGrid(250., 80, 80, 1, 1);
     this.grid.reorderPosition();
     this.treeMesh = [];
 
@@ -45,13 +53,12 @@ function Ground(camera, light){
                      0, 0, 0,
                      0, 0, 0];
     var spiteUv = [0, 0,
-                   0, 1,
-                   1, 0,
-                   1, 1];
+                   0, 0.98,
+                   0.98, 0,
+                   0.98, 0.98];
     var spriteIndices = [0, 1, 2,
                          2, 3, 1];
 
-    this.treeMaterial = new SpritesMaterial("TreeMaterial", _config.world.scene, this);
 
     for(var i = 0; i < this.nbQuadrant; i++){
         var beta = 2.*_pi*i/this.nbQuadrant;
@@ -70,8 +77,6 @@ function Ground(camera, light){
         this.treeMesh[i].subMeshes[0].isHiddenScreen = true;
     }
 
-    this.treeMaterial.diffuseTexture = this.treeImpostorTex.colorMap;
-    this.treeMaterial.bumpTexture = this.treeImpostorTex.normalMap;
 
 
 /*
@@ -266,4 +271,25 @@ Ground.prototype.update = function()
 
     this.mesh[this.meshToDisplay].subMeshes[0].isHiddenScreen = false;
     this.treeMesh[this.meshToDisplay].subMeshes[0].isHiddenScreen = false;
+
+
+    for(var i in this.treeTex){
+        if (this.treeTex[i].meshesRendered>1){
+            this.treeTex[i].colorMipmap = getImageFromTexture(this.treeTex[i].colorMap, this.treeTex[i].textureSize);
+            this.treeTex[i].normalMipmap = getImageFromTexture(this.treeTex[i].normalMap, this.treeTex[i].textureSize);
+
+            this.treeMaterial.diffuseTexture = this.treeTex[i].colorMipmap;
+            this.treeMaterial.bumpTexture = this.treeTex[i].normalMipmap;
+            this.material.treeTextures[i+"_color_texture"] = null;
+            this.material.treeTextures[i+"_normal_texture"] = null;
+
+            this.treeTex[i].meshesRendered = 0;
+            this.treeTex[i].meshesLoaded = false;
+        }else{
+            if (this.treeTex[i].meshesLoaded){
+                this.treeTex[i].meshesRendered++;
+            }
+        }
+    }
+
 }

@@ -1,4 +1,4 @@
-function SpritesMaterial(name, scene) {
+function SpritesMaterial(name, scene, nbCols, nbRows) {
     this.name = name;
     this.id = name;
 
@@ -10,10 +10,14 @@ function SpritesMaterial(name, scene) {
     this.shader = new Shader('./shader/sprites.vertex.fx',
                              './shader/sprites.fragment.fx',
                              ['./shader/texture_noise.include.fx',
-                              './shader/ground.include.fx'],
+                              './shader/ground.include.fx',
+                              './shader/sphere_grid.include.fx'],
                              ['./shader/sphere_grid.include.fx',
                               './shader/phong.include.fx']);
     this.alpha = 1.;
+
+    this.nbCols = nbCols;
+    this.nbRows = nbRows;
 
 
     this.backFaceCulling = false;
@@ -118,6 +122,14 @@ SpritesMaterial.prototype.isReady = function (mesh) {
     defines.push("#define DIFFUSE_2");
     defines.push("#define DIFFUSE_3");
 
+    defines.push("#define DIFFUSE_NORMAL_1");
+    defines.push("#define DIFFUSE_NORMAL_2");
+    defines.push("#define DIFFUSE_NORMAL_3");
+
+    if (this.needAlphaBlending()){
+      defines.push('#define PREMUL_ALPHA');
+    }
+
     var join = defines.join("\n");
     if (this._cachedDefines != join && this.shader.isReady)
     {
@@ -130,7 +142,8 @@ SpritesMaterial.prototype.isReady = function (mesh) {
                                            ['uViewProjection', 'uEyePosInWorld', 'uPlayerPos',
                                             'uFogInfos', 'uVerticalShift',
                                            'uLightData0', 'uLightDiffuse0',
-                                           'uLightData1', 'uLightDiffuse1'],
+                                           'uLightData1', 'uLightDiffuse1',
+                                           'uNbCols', 'uNbRows'],
                                            ['uNoiseSampler', 'uSkySampler', 'uDiffuseSampler', 'uBumpSampler'],
                                            join);
     }
@@ -151,6 +164,10 @@ SpritesMaterial.prototype.bind = function (world, mesh) {
     this._effect.setVector3('uEyePosInWorld', eyePos);
 
     this._effect.setVector3('uPlayerPos', _config.player.position);
+
+    this._effect.setFloat('uNbRows', this.nbRows);
+    this._effect.setFloat('uNbCols', this.nbCols);
+
 
     //Noise
     if (this.noiseTexture) {

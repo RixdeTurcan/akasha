@@ -893,11 +893,16 @@ Grid.prototype.makeClippedMesh = function(name, scene, updatable)
 }
 
 
-function createImpostorTextures(dir, name, textureSize, renderMat, scene)
+function createImpostorTextures(dir, name, textureSize, nbCols, nbRows, renderMat, scene)
 {
     var tex = {
       colorMap: null,
-      normalMap: null
+      normalMap: null,
+      colorMipmap: null,
+      normalMipmap: null,
+      textureSize: textureSize,
+      meshesLoaded: false,
+      meshesRendered: 0
     };
 
     tex.colorMap = createRenderTargetTexture(name+"_color_texture",
@@ -909,9 +914,9 @@ function createImpostorTextures(dir, name, textureSize, renderMat, scene)
                                                  generateDepthBuffer: false
                                              },
                                              null,
-                                             renderMat,
+                                             renderMat.treeTextures,
                                              null);
-
+    tex.colorMap.boundingCylinder = {radius:0, heightMax:0, heightMin:0};
     tex.normalMap = createRenderTargetTexture(name+"_normal_texture",
                                              textureSize,
                                              scene,
@@ -921,8 +926,17 @@ function createImpostorTextures(dir, name, textureSize, renderMat, scene)
                                                  generateDepthBuffer: false
                                              },
                                              null,
-                                             renderMat,
+                                             renderMat.treeTextures,
                                              null);
+    tex.normalMap.boundingCylinder = {radius:0, heightMax:0, heightMin:0};
+
+    var duplicateSubMesh = function(mesh, id, prop){
+        mesh.subMeshes[id].clone(mesh, mesh);
+        var pos = mesh.subMeshes.length-1;
+        mesh.subMeshes[pos].materialIndex = pos;
+        mesh.material.subMaterials.push(mesh.material.subMaterials[id].clone());
+        mesh.subMeshes[pos].prop = prop;
+    };
 
     BABYLON.SceneLoader.ImportMesh("", dir, name+".babylon", scene, function (newMeshes, particleSystems) {
         for( var i=0; i<newMeshes.length; i++){
@@ -932,30 +946,78 @@ function createImpostorTextures(dir, name, textureSize, renderMat, scene)
           var nbSubMeshes = newMeshes[i].subMeshes.length;
           for (var j=0; j<nbSubMeshes; j++){
             newMeshes[i].subMeshes[j].isInFrustum = function(){return true;};
+            newMeshes[i].subMeshes[j].prop =
+            {
+                  row:0,
+                  col:0,
+                  isColor: true
+            };
 
             //Duplicate the materials (we have 2 maps)
-            newMeshes[i].subMeshes[j].clone(newMeshes[i], newMeshes[i]);
-            newMeshes[i].subMeshes[j+nbSubMeshes].materialIndex+=nbSubMeshes;
-            newMeshes[i].material.subMaterials.push(newMeshes[i].material.subMaterials[j].clone());
-            //Add the color map material
-            replaceStandardMaterial(newMeshes[i].material.subMaterials, j,
-                                    new ImpostorGeneratorMaterial(name+"_"+j+"_color", scene, true),
-                                    newMeshes[i], true, true);
-            tex.colorMap.subMeshIdList.push(j);
-            tex.colorMap.meshList.push(newMeshes[i]);
+            duplicateSubMesh(newMeshes[i], j,
+                             {
+                                 row:0,
+                                 col:0,
+                                 isColor: false
+                             });
+          }
 
-            //Add the normal map material
-            replaceStandardMaterial(newMeshes[i].material.subMaterials, j+nbSubMeshes,
-                                    new ImpostorGeneratorMaterial(name+"_"+j+"_normal", scene,
-                                                                  false),
+          //Duplicates the materials for each orientation
+          for (var k=0; k<nbCols; k++){
+            for (var l=0; l<nbRows; l++){
+              for (var j=0; j<2*nbSubMeshes; j++){
+
+                  //The first element is already created
+                  if(k==0 && l==0){continue;}
+
+                  duplicateSubMesh(newMeshes[i], j,
+                                   {
+                                       row:l,
+                                       col:k,
+                                       isColor: (j<nbSubMeshes)?true:false
+                                   });
+              }
+            }
+          }
+
+          for (var j=0; j<newMeshes[i].subMeshes.length; j++){
+            //Add the map material
+            var isColor = newMeshes[i].subMeshes[j].prop.isColor;
+            var typeText = isColor?'color':'normal';
+            var keyText = isColor?'colorMap':'normalMap';
+            var row = newMeshes[i].subMeshes[j].prop.row;
+            var col = newMeshes[i].subMeshes[j].prop.col;
+            var angle = 2.*_pi*(row + nbRows*col)/(nbCols*nbRows);
+            replaceStandardMaterial(newMeshes[i].material.subMaterials, j,
+                                    new ImpostorGeneratorMaterial(name+"_"+j+"_"+typeText, scene,
+                                                                  isColor, angle, row, col, nbRows, nbCols,
+                                                                  tex[keyText]),
                                     newMeshes[i], true, true);
-            tex.normalMap.subMeshIdList.push(j+nbSubMeshes);
-            tex.normalMap.meshList.push(newMeshes[i]);
+            tex[keyText].subMeshIdList.push(j);
+            tex[keyText].meshList.push(newMeshes[i]);
+
           }
           //Add the mesh to the render list
           tex.colorMap.renderList.push(newMeshes[i]);
           tex.normalMap.renderList.push(newMeshes[i]);
+
+          //Compute the bounding cyclinder
+          var pos = newMeshes[i]._geometry._vertexBuffers.position._data;
+          var radius = 0.;
+          var heightMin = pos[1];
+          var heightMax = pos[1];
+          for(var j=0; j<pos.length; j+=3){
+              var n = Math.sqrt(pos[j]*pos[j]+pos[j+2]*pos[j+2]);
+              radius = Math.max(radius, n);
+              heightMin = Math.min(heightMin, pos[j+1]);
+          }
+          tex.colorMap.boundingCylinder.radius = tex.normalMap.boundingCylinder.radius = radius;
+          tex.colorMap.boundingCylinder.heightMax = tex.normalMap.boundingCylinder.heightMax = heightMax;
+          tex.colorMap.boundingCylinder.heightMin = tex.normalMap.boundingCylinder.heightMin = heightMin;
+
         }
+
+        tex.meshesLoaded = true;
     });
 
     return tex;
@@ -963,6 +1025,40 @@ function createImpostorTextures(dir, name, textureSize, renderMat, scene)
 
 
 
+function getImageFromTexture(tex, size)
+{
+    var gl = _gl;
+    var Colortexture = tex.getInternalTexture();
+    // Create a framebuffer backed by the texture
+    var framebuffer = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, Colortexture, 0);
+
+    // Read the contents of the framebuffer
+    var data = new Uint8Array(size * size * 4);
+    gl.readPixels(0, 0, size, size, gl.RGBA, gl.UNSIGNED_BYTE, data);
+
+    // Delete the framebuffer
+    gl.deleteFramebuffer(framebuffer);
+
+    //Create a canvas2D
+    var canvas = document.createElement('canvas');
+    canvas.width = size;
+    canvas.height = size;
+    var ctx = canvas.getContext("2d");
+
+    //Fill the imageData
+    var imageData = ctx.createImageData(size, size);
+    imageData.data.set(data);
+
+    //Read the image in a babylon texture
+    var imageTex = new BABYLON.Texture('data:'+Math.random(), _config.world.scene,
+                                       false, false, BABYLON.Texture.TRILINEAR_SAMPLINGMODE,
+                                       null, null, imageData);
+    imageTex.wrapU = BABYLON.Texture.CLAMP_ADDRESSMODE;
+    imageTex.wrapV = BABYLON.Texture.CLAMP_ADDRESSMODE;
+    return imageTex;
+}
 
 
 

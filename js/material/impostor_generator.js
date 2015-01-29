@@ -1,12 +1,19 @@
-function ImpostorGeneratorMaterial(name, scene, isColorMap, needAlphaBlending, needAlphaTesting) {
+function ImpostorGeneratorMaterial(name, scene, isColorMap, angle, row, col, nbRows, nbCols, map) {
     this.name = name;
     this.id = name;
 
     this.iscolorMap = isColorMap;
 
-    this.alphaBlending = needAlphaBlending;
-    this.alphaTesting = needAlphaTesting;
+    this.alphaBlending = false;
+    this.alphaTesting = false;
 
+    this.angle = angle;
+    this.row = row;
+    this.col = col;
+    this.nbRows = nbRows;
+    this.nbCols = nbCols;
+
+    this.map = map;
     this._scaledDiffuse = new BABYLON.Color3();
     this._scaledSpecular = new BABYLON.Color3()
 
@@ -67,6 +74,10 @@ ImpostorGeneratorMaterial.prototype.isReady = function (mesh) {
         defines.push("#define RENDER_NORMAL");
     }
 
+    if (this.needAlphaBlending()){
+      defines.push('#define PREMUL_ALPHA');
+    }
+
     var join = defines.join("\n");
     if (this._cachedDefines != join && this.shader.isReady)
     {
@@ -77,7 +88,9 @@ ImpostorGeneratorMaterial.prototype.isReady = function (mesh) {
                                             BABYLON.VertexBuffer.NormalKind,
                                             BABYLON.VertexBuffer.UVKind],
                                            ['uBumpInfos', 'uBumpMatrix',
-                                            'uDiffuseMatrix'],
+                                            'uDiffuseMatrix', 'uAngle',
+                                            'uRow', 'uCol', 'uNbRows', 'uNbCols',
+                                            'uInvBoxLimits', 'uOffsetY'],
                                            ['uDiffuseSampler', 'uBumpSampler'],
                                            join);
     }
@@ -91,6 +104,18 @@ ImpostorGeneratorMaterial.prototype.isReady = function (mesh) {
 
 ImpostorGeneratorMaterial.prototype.bind = function (world, mesh) {
 
+    this._effect.setFloat('uAngle', this.angle);
+    this._effect.setFloat('uRow', this.row);
+    this._effect.setFloat('uCol', this.col);
+    this._effect.setFloat('uNbRows', this.nbRows);
+    this._effect.setFloat('uNbCols', this.nbCols);
+
+    var r = Math.max(this.map.boundingCylinder.radius, this.map.boundingCylinder.heightMax - this.map.boundingCylinder.heightMin);
+    var offset = -this.map.boundingCylinder.heightMin-r;
+
+
+    this._effect.setVector3('uInvBoxLimits', new BABYLON.Vector3(1./r, 1./r, 1./r));
+    this._effect.setFloat('uOffsetY', offset);
     if (this.diffuseTexture) {
         this._effect.setTexture("uDiffuseSampler", this.diffuseTexture);
 

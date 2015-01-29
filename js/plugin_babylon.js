@@ -47,7 +47,7 @@ var getSamplingParameters = function (samplingMode, generateMipMaps, gl, enableT
 BABYLON.Engine.prototype.clear = function (color, backBuffer, depthStencil) {
     this.applyStates();
 
-    this._gl.clearColor(color.r, color.g, color.b, color.a !== undefined ? color.a : 0.0); //1.0
+    this._gl.clearColor(color.r, color.g, color.b, color.a !== undefined ? color.a : 0.0);
     if (this._depthCullingState.depthMask) {
         this._gl.clearDepth(1.0);
     }
@@ -625,7 +625,6 @@ BABYLON.Engine.prototype.createTexture = function (url, noMipmap, invertY, scene
         }
         else
         {
-
             //+++
             var size = parseInt(Math.sqrt(buffer.data.length/4));
 
@@ -715,10 +714,31 @@ BABYLON.Geometry.prototype._applyToMesh = function (mesh) {
     }
 
 
-            if (numOfMeshes === 1 && this._indices) {
-                this._indexBuffer = this._engine.createIndexBuffer(this._indices);
-            }
-            if (this._indexBuffer) {
-                this._indexBuffer.references = numOfMeshes;
-            }
-        };
+    if (numOfMeshes === 1 && this._indices) {
+        this._indexBuffer = this._engine.createIndexBuffer(this._indices);
+    }
+    if (this._indexBuffer) {
+        this._indexBuffer.references = numOfMeshes;
+    }
+};
+
+/*
+BABYLON.Engine.prototype.setAlphaMode = function (mode) {
+    switch (mode) {
+    case BABYLON.Engine.ALPHA_DISABLE:
+        this.setDepthWrite(true);
+        this._alphaState.alphaBlend = false;
+        break;
+    case BABYLON.Engine.ALPHA_COMBINE:
+        this.setDepthWrite(false);
+        this._alphaState.setAlphaBlendFunctionParameters(this._gl.ONE, this._gl.ONE_MINUS_SRC_ALPHA, this._gl.ONE, this._gl.ONE);
+        this._alphaState.alphaBlend = true;
+        break;
+    case BABYLON.Engine.ALPHA_ADD:
+        this.setDepthWrite(false);
+        this._alphaState.setAlphaBlendFunctionParameters(this._gl.ONE, this._gl.ONE, this._gl.ZERO, this._gl.ONE);
+        this._alphaState.alphaBlend = true;
+        break;
+    }
+};
+*/

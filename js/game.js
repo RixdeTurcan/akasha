@@ -272,17 +272,17 @@ Test.prototype.createSkyTestProfiler = function(){
 
 Test.prototype.createGroundTestRTTPrinter = function(){
     this.initRTTPrinter();
+    this.initControlPanelSection(this.$rttPanel, this.$rttTitle, 'None');
     this.initControlPanelSection(this.$rttPanel, this.$rttTitle, 'ColorMap');
     this.initControlPanelSection(this.$rttPanel, this.$rttTitle, 'NormalMap');
-    this.initControlPanelSection(this.$rttPanel, this.$rttTitle, 'None');
     this.startControlPanel(this.$rttPanel);
 
     var f = function(name){
         this.RTTBinded = true;
         if (name=="ColorMap"){
-            this.rttTextureToRender.material.texture = this.skytest.ground.treeImpostorTex.colorMap;
+            this.rttTextureToRender.material.texture = this.skytest.ground.treeTex['Eucalyptus'].colorMipmap;
         }else if (name=="NormalMap"){
-            this.rttTextureToRender.material.texture = this.skytest.ground.treeImpostorTex.normalMap;
+            this.rttTextureToRender.material.texture = this.skytest.ground.treeTex['Eucalyptus'].normalMipmap;
         }else{
             this.rttTextureToRender.material.texture = null;
             this.RTTBinded = false;
@@ -292,7 +292,7 @@ Test.prototype.createGroundTestRTTPrinter = function(){
     this.$rttPanel.on("tabsactivate", function(e, ui){
         f(ui.newTab.children().html());
     });
-    f("ColorMap");
+    f("None");
 }
 
 Test.prototype.createCloudTestRTTPrinter = function(){

@@ -82,3 +82,10 @@ float computeDiffuseFactor(vec3 lightVectorW, vec3 normal, float diffuseOffset, 
 {
   return clamp(diffuseFactor * (diffuseOffset + dot(normal, lightVectorW)), 0., 1.);
 }
+
+float computeSpecularFactor(vec3 lightVectorW, vec3 viewVectorW, vec3 normal, float specFactor)
+{
+  vec3 angleW = normalize(viewVectorW + lightVectorW);
+  float specComp = max(0., dot(normal, angleW));
+  return pow(specComp, specFactor);
+}

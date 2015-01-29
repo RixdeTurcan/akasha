@@ -39,5 +39,9 @@ void main(void) {
     #endif
   #endif
 
+  //Premultiplied alpha
+  #ifdef PREMUL_ALPHA
+   // color.rgb *= color.a;
+  #endif
   gl_FragColor = color;
 }
