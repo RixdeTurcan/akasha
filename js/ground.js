@@ -5,18 +5,35 @@ function Ground(camera, light){
     this.camera = camera;
     this.light = light;
 
+    this.loaded = false;
+    this.loading = false;
+    this.loaderCallback = function(){};
+    this.nbTextureToLoad = 6;
+    this.nbTextureLoaded = 0;
+    this.textureLoaded = false;
+    this.groundMeshLoaded = false;
+    this.treeMeshLoaded = false;
+    this.loadingPercent = 0;
+}
+
+Ground.prototype.load = function(loaderCallback, loadingCallback){
+    this.loaderCallback = loaderCallback;
+
     this.material = new GroundMaterial("GroundMaterial", _config.world.scene, this);
 
     this.treeTex = {}
-    this.treeTex.Eucalyptus = createImpostorTextures('asset/pine/', 'Eucalyptus', 4096, 8, 8,
-                                                     this.material, _config.world.scene);
+    this.treeTex.Eucalyptus = createImpostorTextures('asset/pine/', 'Eucalyptus', 4096, 8, 8, this.material,
+                                                     _config.world.scene, function(){
+                                                         this.loadingPercent += 0.2;
+                                                         loadingCallback(this.loadingPercent);
+                                                         this.material.renderImpostorTex = true;
+                                                     }.bind(this));
 /*
     this.treeTex.arvore = createImpostorTextures('asset/pine2/', 'arvore', 512, 1, 1,
                                                      this.material, _config.world.scene);
 
 */
     this.treeMaterial = new SpritesMaterial("TreeMaterial", _config.world.scene, 8, 8);
-
 
     this.nbQuadrant = 40;
     this.meshToDisplay = 0;
@@ -25,9 +42,8 @@ function Ground(camera, light){
     this.grid = new Grid();
     this.grid.createGrid(20., 100, 70, 5, 1);
 
-
     //Ground
-    for(var i = 0; i < this.nbQuadrant; i++){
+    var groundFunc = function(i){
         var beta = 2.*_pi*i/this.nbQuadrant;
         var betaRange = _pi/5.0;
 
@@ -40,12 +56,25 @@ function Ground(camera, light){
         this.mesh[i].isInFrustum = function(){return true;};
         this.mesh[i].subMeshes[0].isInFrustum = function(){return true;};
         this.mesh[i].subMeshes[0].isHiddenScreen = true;
-    }
+
+        this.loadingPercent += 0.25/this.nbQuadrant;
+        loadingCallback(this.loadingPercent);
+
+        if (i<this.nbQuadrant){
+            setTimeout(function(){
+                groundFunc(i+1);
+            }.bind(this), 10);
+        }else{
+            this.groundMeshLoaded = true;
+        }
+    }.bind(this);
+    groundFunc(0);
 
 
     //Trees
-    this.grid.createGrid(250., 80, 80, 1, 1);
-    this.grid.reorderPosition();
+    this.treeGrid = new Grid();
+    this.treeGrid.createGrid(250., 80, 80, 1, 1);
+    this.treeGrid.reorderPosition();
     this.treeMesh = [];
 
     var spritePos = [0, 0, 0,
@@ -60,13 +89,13 @@ function Ground(camera, light){
                          2, 3, 1];
 
 
-    for(var i = 0; i < this.nbQuadrant; i++){
+    var treeFunc = function(i){
         var beta = 2.*_pi*i/this.nbQuadrant;
         var betaRange = _pi/4.0;
 
-        this.grid.clip(beta+_pi, betaRange, -750., 750., true, true);
+        this.treeGrid.clip(beta+_pi, betaRange, -750., 750., true, true);
 
-        this.treeMesh[i] = this.grid.makeLodMeshes("trees"+i, spritePos, spiteUv, spriteIndices,
+        this.treeMesh[i] = this.treeGrid.makeLodMeshes("trees"+i, spritePos, spiteUv, spriteIndices,
                                                    _config.world.scene, false);
 
         this.treeMesh[i].material = new BABYLON.MultiMaterial("treeMultiMat", _config.world.scene);
@@ -75,8 +104,19 @@ function Ground(camera, light){
         this.treeMesh[i].isInFrustum = function(){return true;};
         this.treeMesh[i].subMeshes[0].isInFrustum = function(){return true;};
         this.treeMesh[i].subMeshes[0].isHiddenScreen = true;
-    }
 
+        this.loadingPercent += 0.25/this.nbQuadrant
+        loadingCallback(this.loadingPercent);
+
+        if (i<this.nbQuadrant){
+            setTimeout(function(){
+                treeFunc(i+1);
+            }.bind(this), 10);
+        }else{
+            this.treeMeshLoaded = true;
+        }
+    }.bind(this);
+    treeFunc(0);
 
 
 /*
@@ -102,8 +142,18 @@ function Ground(camera, light){
     this.meshLowDefRefraction.subMeshes[0].isInFrustum = function(){return true;};
 */
 
+    var loadingFunction = function(){
+        this.nbTextureLoaded++;
+        this.loadingPercent += 0.1/this.nbTextureToLoad;
+        if (this.nbTextureLoaded>=this.nbTextureToLoad){
+            this.textureLoaded = true;
+        }else{
+            loadingCallback(this.loadingPercent);
+        }
+    }.bind(this);
+
     //Noise texture
-    this.noiseTexture = new BABYLON.Texture("asset/noise.png", _config.world.scene, true);
+    this.noiseTexture = new BABYLON.Texture("asset/noise.png", _config.world.scene, true, false, BABYLON.Texture.TRILINEAR_SAMPLINGMODE, loadingFunction);
     this.noiseTexture.wrapU = BABYLON.Texture.WRAP_ADDRESSMODE;
     this.noiseTexture.wrapV = BABYLON.Texture.WRAP_ADDRESSMODE;
     this.material.noiseTexture = this.noiseTexture;
@@ -116,20 +166,17 @@ function Ground(camera, light){
     this.material.grassTexture = this.grassTexture;
 */
     //diffuse 1
-    this.material.diffuse1Texture = new BABYLON.Texture("asset/sand.png",
-                                                       _config.world.scene);
+    this.material.diffuse1Texture = new BABYLON.Texture("asset/sand.png", _config.world.scene, false, false, BABYLON.Texture.TRILINEAR_SAMPLINGMODE, loadingFunction);
     this.material.diffuse1Texture.wrapU = BABYLON.Texture.WRAP_ADDRESSMODE;
     this.material.diffuse1Texture.wrapV = BABYLON.Texture.WRAP_ADDRESSMODE;
 
     //diffuse 2
-    this.material.diffuse2Texture = new BABYLON.Texture("asset/grass_far.png",
-                                                        _config.world.scene);
+    this.material.diffuse2Texture = new BABYLON.Texture("asset/grass_far.png",  _config.world.scene, false, false, BABYLON.Texture.TRILINEAR_SAMPLINGMODE, loadingFunction);
     this.material.diffuse2Texture.wrapU = BABYLON.Texture.WRAP_ADDRESSMODE;
     this.material.diffuse2Texture.wrapV = BABYLON.Texture.WRAP_ADDRESSMODE;
 
     //diffuse normal 2
-    this.material.diffuseNormal2Texture = new BABYLON.Texture("asset/dirt.png",
-                                                        _config.world.scene);
+    this.material.diffuseNormal2Texture = new BABYLON.Texture("asset/dirt.png", _config.world.scene, false, false, BABYLON.Texture.TRILINEAR_SAMPLINGMODE, loadingFunction);
     this.material.diffuseNormal2Texture.wrapU = BABYLON.Texture.WRAP_ADDRESSMODE;
     this.material.diffuseNormal2Texture.wrapV = BABYLON.Texture.WRAP_ADDRESSMODE;
 /*
@@ -140,14 +187,12 @@ function Ground(camera, light){
     this.material.diffuseFar2Texture.wrapV = BABYLON.Texture.WRAP_ADDRESSMODE;
 */
     //diffuse 3
-    this.material.diffuse3Texture = new BABYLON.Texture("asset/snow.png",
-                                                        _config.world.scene);
+    this.material.diffuse3Texture = new BABYLON.Texture("asset/snow.png", _config.world.scene, false, false, BABYLON.Texture.TRILINEAR_SAMPLINGMODE, loadingFunction);
     this.material.diffuse3Texture.wrapU = BABYLON.Texture.WRAP_ADDRESSMODE;
     this.material.diffuse3Texture.wrapV = BABYLON.Texture.WRAP_ADDRESSMODE;
 
     //diffuse normal 3
-    this.material.diffuseNormal3Texture = new BABYLON.Texture("asset/stone.png",
-                                                        _config.world.scene);
+    this.material.diffuseNormal3Texture = new BABYLON.Texture("asset/stone.png",  _config.world.scene, false, false, BABYLON.Texture.TRILINEAR_SAMPLINGMODE, loadingFunction);
     this.material.diffuseNormal3Texture.wrapU = BABYLON.Texture.WRAP_ADDRESSMODE;
     this.material.diffuseNormal3Texture.wrapV = BABYLON.Texture.WRAP_ADDRESSMODE;
 
@@ -230,6 +275,11 @@ function Ground(camera, light){
     this.shadowMapPreviousPos = _config.player.position;
 
     */
+
+    this.loadingPercent += 0.1;
+    loadingCallback(this.loadingPercent);
+    this.loaded = true;
+    this.loading = true;
 }
 
 Ground.prototype.addWavedataTexture = function(texture)
@@ -252,6 +302,7 @@ Ground.prototype.addShadowTexture = function(shadowTexture)
 
 Ground.prototype.update = function()
 {
+    if (!this.loaded){return;}
 /*
     this.material.projectedGrid.compute(_config.world.cameraPos,
                                         _config.world.transformMat,
@@ -263,33 +314,27 @@ Ground.prototype.update = function()
     this.shadowHeightTexture.material.deltaPos = this.shadowMapPreviousPos.scale(-1);
     this.shadowTexture.material.deltaPos = this.shadowMapPreviousPos.scale(-1);
 */
+    if (this.groundMeshLoaded && this.treeMeshLoaded){
+        this.mesh[this.meshToDisplay].subMeshes[0].isHiddenScreen = true;
+        this.treeMesh[this.meshToDisplay].subMeshes[0].isHiddenScreen = true;
 
-    this.mesh[this.meshToDisplay].subMeshes[0].isHiddenScreen = true;
-    this.treeMesh[this.meshToDisplay].subMeshes[0].isHiddenScreen = true;
+        this.meshToDisplay = Math.round((_config.player.angle.mod(2.*_pi))/(2.*_pi/this.nbQuadrant)).mod(this.nbQuadrant);
 
-    this.meshToDisplay = Math.round((_config.player.angle.mod(2.*_pi))/(2.*_pi/this.nbQuadrant)).mod(this.nbQuadrant);
+        this.mesh[this.meshToDisplay].subMeshes[0].isHiddenScreen = false;
+        this.treeMesh[this.meshToDisplay].subMeshes[0].isHiddenScreen = false;
 
-    this.mesh[this.meshToDisplay].subMeshes[0].isHiddenScreen = false;
-    this.treeMesh[this.meshToDisplay].subMeshes[0].isHiddenScreen = false;
+        if (this.loading && this.textureLoaded && this.material.impostorTexRendered){
+            for(var i in this.treeTex){
+                this.treeTex[i].colorMipmap = getImageFromTexture(this.treeTex[i].colorMap, this.treeTex[i].textureSize);
+                this.treeTex[i].normalMipmap = getImageFromTexture(this.treeTex[i].normalMap, this.treeTex[i].textureSize);
 
-
-    for(var i in this.treeTex){
-        if (this.treeTex[i].meshesRendered>1){
-            this.treeTex[i].colorMipmap = getImageFromTexture(this.treeTex[i].colorMap, this.treeTex[i].textureSize);
-            this.treeTex[i].normalMipmap = getImageFromTexture(this.treeTex[i].normalMap, this.treeTex[i].textureSize);
-
-            this.treeMaterial.diffuseTexture = this.treeTex[i].colorMipmap;
-            this.treeMaterial.bumpTexture = this.treeTex[i].normalMipmap;
-            this.material.treeTextures[i+"_color_texture"] = null;
-            this.material.treeTextures[i+"_normal_texture"] = null;
-
-            this.treeTex[i].meshesRendered = 0;
-            this.treeTex[i].meshesLoaded = false;
-        }else{
-            if (this.treeTex[i].meshesLoaded){
-                this.treeTex[i].meshesRendered++;
+                this.treeMaterial.diffuseTexture = this.treeTex[i].colorMipmap;
+                this.treeMaterial.bumpTexture = this.treeTex[i].normalMipmap;
+                this.material.treeTextures[i+"_color_texture"] = null;
+                this.material.treeTextures[i+"_normal_texture"] = null;
             }
+            this.loading = false;
+            this.loaderCallback();
         }
     }
-
 }

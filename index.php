@@ -47,6 +47,7 @@
     <script type="text/javascript" src="js/ocean.js"></script>
     <script type="text/javascript" src="js/control_panel.js"></script>
 
+    <script type="text/javascript" src="js/test.js"></script>
     <script type="text/javascript" src="js/game.js"></script>
 
     <link type='text/css' rel='stylesheet' href='css/game.css' />

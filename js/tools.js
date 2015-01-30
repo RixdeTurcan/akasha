@@ -18,6 +18,7 @@ Number.prototype.mod = function(n){ return ((this%n)+n)%n; }
 
 function sign(x) { return x > 0 ? 1 : -1; }
 
+
 function onReady(elem, func, refreshTime)
 {
    if (refreshTime==null){
@@ -893,16 +894,15 @@ Grid.prototype.makeClippedMesh = function(name, scene, updatable)
 }
 
 
-function createImpostorTextures(dir, name, textureSize, nbCols, nbRows, renderMat, scene)
+function createImpostorTextures(dir, name, textureSize, nbCols, nbRows,
+                                renderMat, scene, loadedCallback)
 {
     var tex = {
       colorMap: null,
       normalMap: null,
       colorMipmap: null,
       normalMipmap: null,
-      textureSize: textureSize,
-      meshesLoaded: false,
-      meshesRendered: 0
+      textureSize: textureSize
     };
 
     tex.colorMap = createRenderTargetTexture(name+"_color_texture",
@@ -939,6 +939,8 @@ function createImpostorTextures(dir, name, textureSize, nbCols, nbRows, renderMa
     };
 
     BABYLON.SceneLoader.ImportMesh("", dir, name+".babylon", scene, function (newMeshes, particleSystems) {
+        var callbacks = new Callbacks(newMeshes.length, loadedCallback);
+
         for( var i=0; i<newMeshes.length; i++){
           convertIntoMultiMaterialMesh(newMeshes[i], scene);
           newMeshes[i].isInFrustum = function(){return true;};
@@ -1015,9 +1017,10 @@ function createImpostorTextures(dir, name, textureSize, nbCols, nbRows, renderMa
           tex.colorMap.boundingCylinder.heightMax = tex.normalMap.boundingCylinder.heightMax = heightMax;
           tex.colorMap.boundingCylinder.heightMin = tex.normalMap.boundingCylinder.heightMin = heightMin;
 
+          onReady(newMeshes[i].material, function(){
+              this.add();
+          }.bind(callbacks), 200);
         }
-
-        tex.meshesLoaded = true;
     });
 
     return tex;
@@ -1062,4 +1065,52 @@ function getImageFromTexture(tex, size)
 
 
 
+function Loader(callBackLoading, callbackLoaded)
+{
+    this.loadFuncs = [];
+    this.isLoading = false;
+    this.loadId = 0;
+    this.loadPercent = 0.;
 
+    this.callBackLoading = callBackLoading;
+    this.callbackLoaded = callbackLoaded;
+}
+
+Loader.prototype.add = function(loadFunc)
+{
+    this.loadFuncs.push(loadFunc);
+}
+
+Loader.prototype.start = function()
+{
+    this.isLoading = true;
+    if (this.loadId >= this.loadFuncs.length){
+        this.isLoading = false;
+        this.callbackLoaded();
+    }else{
+        this.loadFuncs[this.loadId](function(){
+            this.loadId++;
+            this.loadPercent = this.loadId / this.loadFuncs.length;
+            this.callBackLoading(this.loadPercent);
+            this.start();
+        }.bind(this), function(loadPercent){
+            this.callBackLoading(this.loadPercent+loadPercent/this.loadFuncs.length);
+        }.bind(this));
+    }
+}
+
+
+function Callbacks(nbToLoad, callback)
+{
+    this.nbToLoad = nbToLoad;
+    this.nbLoaded = 0;
+    this.callback = callback;
+}
+
+Callbacks.prototype.add = function()
+{
+    this.nbLoaded++;
+    if (this.nbLoaded >= this.nbToLoad){
+        this.callback();
+    }
+}

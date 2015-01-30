@@ -3,7 +3,9 @@ function Sky(camera, withcloud){
 
     this.camera = camera;
     this.withcloud = withcloud;
+}
 
+Sky.prototype.load = function(loaderCallback, loadingCallback){
     if (this.withcloud){
         //Noise texture
         this.noiseTexture = new BABYLON.Texture("asset/noise.png", _config.world.scene);
@@ -209,9 +211,15 @@ function Sky(camera, withcloud){
     this.lastPlayerPos = _config.player.position.clone();
     this.lastPlayerPosComputed = this.lastPlayerPos.clone();
 
+    this.loaded = true;
+    this.loading = true;
+    this.loaderCallback = loaderCallback;
+    this.loadingCallback = loadingCallback;
+    this.loadingId = 0;
 }
 
 Sky.prototype.update = function(){
+    if (!this.loaded){return;}
 
     if (this.withcloud){
 
@@ -231,9 +239,21 @@ Sky.prototype.update = function(){
         var depthNb = 8;//32;
         var depthSize = 112;//448;
 
+        if (this.step>=heightNb+depthNb){
+            this.step -= heightNb+depthNb;
+        }
+        var s = this.step;
 
+        if (this.loading){
+            if (this.loadingId>=depthNb){
+                this.loading=false;
+                this.loaderCallback();
+            }else{
+                this.loadingCallback(this.loadingId/depthNb);
+                this.loadingId++;
+            }
+        }
 
-        var s = this.step%(heightNb+depthNb);
         var t = s-heightNb;
 
         if (s<heightNb){
@@ -301,6 +321,11 @@ Sky.prototype.update = function(){
         _config.sky.deltaPlayerPos = _config.player.position.subtract(this.lastPlayerPos).add(cloudDeltaPos);
         this.step++;
 
+    }
+    else
+    {
+        this.loading=false;
+        this.loaderCallback();
     }
 
     var sunColor = this.computeSunColor();

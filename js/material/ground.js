@@ -11,6 +11,8 @@ function GroundMaterial(name, scene, ground) {
     this._lightMatrix = BABYLON.Matrix.Zero();
 
     this.treeTextures = {};
+    this.renderImpostorTex = false;
+    this.impostorTexRendered = false;
 
     this.wireframe = false;
     _$body.keypress(function(e){
@@ -48,12 +50,16 @@ GroundMaterial.prototype.needAlphaTesting = function () {
 GroundMaterial.prototype.getRenderTargetTextures = function () {
     this._renderTargets.reset();
 
-    for(var i in this.treeTextures)
-    {
-        var tex = this.treeTextures[i];
-        if (tex && tex.isRenderTarget) {
-            this._renderTargets.push(tex);
+    if (this.renderImpostorTex){
+        for(var i in this.treeTextures)
+        {
+            var tex = this.treeTextures[i];
+            if (tex && tex.isRenderTarget) {
+                this._renderTargets.push(tex);
+            }
         }
+        this.impostorTexRendered = true;
+        this.renderImpostorTex = false;
     }
 
     return this._renderTargets;
