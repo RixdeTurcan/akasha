@@ -126,6 +126,7 @@ Test.prototype.startCloudTest = function(){
 
     //Add a sky
     this.skytest.sky = new Sky(this.skytest.camera, true);
+    this.skytest.sky.load(function(){}, function(){});
 
 
     //Add a wireframe grid ground
@@ -175,6 +176,7 @@ Test.prototype.startSkyTest = function(){
 
     //Add a sky
     this.skytest.sky = new Sky(this.skytest.camera);
+    this.skytest.sky.load(function(){}, function(){});
 
 
     //Add a wireframe grid ground

@@ -8,16 +8,19 @@ function Ground(camera, light){
     this.loaded = false;
     this.loading = false;
     this.loaderCallback = function(){};
+    this.loadingCallback = function(){};
     this.nbTextureToLoad = 6;
     this.nbTextureLoaded = 0;
     this.textureLoaded = false;
     this.groundMeshLoaded = false;
     this.treeMeshLoaded = false;
     this.loadingPercent = 0;
+    this.impostorTexRendering = false;
 }
 
 Ground.prototype.load = function(loaderCallback, loadingCallback){
     this.loaderCallback = loaderCallback;
+    this.loadingCallback = loadingCallback;
 
     this.material = new GroundMaterial("GroundMaterial", _config.world.scene, this);
 
@@ -276,8 +279,6 @@ Ground.prototype.load = function(loaderCallback, loadingCallback){
 
     */
 
-    this.loadingPercent += 0.1;
-    loadingCallback(this.loadingPercent);
     this.loaded = true;
     this.loading = true;
 }
@@ -323,18 +324,52 @@ Ground.prototype.update = function()
         this.mesh[this.meshToDisplay].subMeshes[0].isHiddenScreen = false;
         this.treeMesh[this.meshToDisplay].subMeshes[0].isHiddenScreen = false;
 
-        if (this.loading && this.textureLoaded && this.material.impostorTexRendered){
-            for(var i in this.treeTex){
-                this.treeTex[i].colorMipmap = getImageFromTexture(this.treeTex[i].colorMap, this.treeTex[i].textureSize);
-                this.treeTex[i].normalMipmap = getImageFromTexture(this.treeTex[i].normalMap, this.treeTex[i].textureSize);
+        var impostorfunc = function(k, nb, color){
+            if (k>=nb){
+                if (color){
+                    setTimeout(function(){
+                        impostorfunc(0, nb, false);
+                    }.bind(this), 10);
+                }else{
+                    for(var i in this.treeTex){
+                        this.treeMaterial.diffuseTexture = this.treeTex[i].colorMipmap;
+                        this.treeMaterial.bumpTexture = this.treeTex[i].normalMipmap;
+                    }
+                    this.loading = false;
+                    this.loaderCallback();
+                }
+                return;
+            }
 
-                this.treeMaterial.diffuseTexture = this.treeTex[i].colorMipmap;
-                this.treeMaterial.bumpTexture = this.treeTex[i].normalMipmap;
+            var j=0;
+            var i;
+            for(i in this.treeTex){
+                j++;
+                if (j>k){break;}
+            }
+
+            if (color){
+                this.treeTex[i].colorMipmap = getImageFromTexture(this.treeTex[i].colorMap, this.treeTex[i].textureSize);
+            }else{
+                this.treeTex[i].normalMipmap = getImageFromTexture(this.treeTex[i].normalMap, this.treeTex[i].textureSize);
+            }
+
+            this.loadingPercent += 0.1/nb;
+            this.loadingCallback(this.loadingPercent);
+
+            setTimeout(function(){
+                impostorfunc(k+1, nb, color);
+            }.bind(this), 10);
+        }.bind(this);
+        if (this.loading && this.textureLoaded && this.material.impostorTexRendered && !this.impostorTexRendering){
+            var nb = 0;
+            for(var i in this.treeTex){
+                nb++;
                 this.material.treeTextures[i+"_color_texture"] = null;
                 this.material.treeTextures[i+"_normal_texture"] = null;
             }
-            this.loading = false;
-            this.loaderCallback();
+            this.impostorTexRendering = true;
+            impostorfunc(0, nb, true);
         }
     }
 }
