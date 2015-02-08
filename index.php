@@ -57,6 +57,6 @@
 
 <body>
     <canvas id="canvas"></canvas>
-    <div style="display:none;" id="testNumber"><? if (isset($_GET['num'])){echo $_GET['num'];}else{echo 1;} ?></div>
+    <div style="display:none;" id="testNumber"><?php if (isset($_GET['num'])){echo $_GET['num'];}else{echo 1;} ?></div>
 </body>
 </html>
