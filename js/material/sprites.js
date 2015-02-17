@@ -29,7 +29,7 @@ SpritesMaterial.prototype = Object.create(BABYLON.Material.prototype);
 
 // Properties
 SpritesMaterial.prototype.needAlphaBlending = function () {
-    return true;
+    return false;
 };
 
 SpritesMaterial.prototype.needAlphaTesting = function () {
@@ -76,6 +76,14 @@ SpritesMaterial.prototype.isReady = function (mesh) {
             return false;
         } else {
             defines.push("#define SKY");
+        }
+    }
+
+    if (this.spriteHeightTexture) {
+        if (!this.spriteHeightTexture.isReady()) {
+            return false;
+        } else {
+            defines.push("#define GROUND_HEIGHT");
         }
     }
 
@@ -138,13 +146,13 @@ SpritesMaterial.prototype.isReady = function (mesh) {
                                             fragment: this.shader.fragmentElem},
                                            [BABYLON.VertexBuffer.PositionKind,
                                             BABYLON.VertexBuffer.UVKind,
-                                            BABYLON.VertexBuffer.UV2Kind],
+                                            BABYLON.VertexBuffer.ColorKind],
                                            ['uViewProjection', 'uEyePosInWorld', 'uPlayerPos',
                                             'uFogInfos', 'uVerticalShift',
                                            'uLightData0', 'uLightDiffuse0',
                                            'uLightData1', 'uLightDiffuse1',
                                            'uNbCols', 'uNbRows'],
-                                           ['uNoiseSampler', 'uSkySampler', 'uDiffuseSampler', 'uBumpSampler'],
+                                           ['uNoiseSampler', 'uGroundHeightSampler', 'uSkySampler', 'uDiffuseSampler', 'uBumpSampler'],
                                            join);
     }
 
@@ -153,6 +161,17 @@ SpritesMaterial.prototype.isReady = function (mesh) {
     }
 
     return true;
+};
+
+SpritesMaterial.prototype.unbind = function ()
+{
+    if (this.skyTexture && this.skyTexture.isRenderTarget) {
+        this._effect.setTexture("uSkySampler", null);
+    }
+
+    if (this.spriteHeightTexture && this.spriteHeightTexture.isRenderTarget) {
+        this._effect.setTexture("uGroundHeightSampler", null);
+    }
 };
 
 SpritesMaterial.prototype.bind = function (world, mesh) {
@@ -172,6 +191,11 @@ SpritesMaterial.prototype.bind = function (world, mesh) {
     //Noise
     if (this.noiseTexture) {
         this._effect.setTexture("uNoiseSampler", this.noiseTexture);
+    }
+
+    // ground height
+    if (this.spriteHeightTexture) {
+        this._effect.setTexture("uGroundHeightSampler", this.spriteHeightTexture);
     }
 
     //Diffuse

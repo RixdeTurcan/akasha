@@ -70,6 +70,7 @@ varying float vDiffuseHeightOffset;
   uniform vec4 uFogInfos;
 #endif
 
+
 #ifdef GRASS
   uniform sampler2D uGrassSampler;
 
@@ -180,7 +181,6 @@ varying float vDiffuseHeightOffset;
 
 
 #endif
-
 
 void main(void) {
   vec4 color = vec4(0., 0., 0., 1.);

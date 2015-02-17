@@ -1,5 +1,5 @@
 attribute vec3 position;
-attribute vec2 uv2;
+attribute vec3 color;
 
 uniform mat4 uViewProjection;
 uniform vec3 uPlayerPos;
@@ -13,29 +13,25 @@ varying float vDiffuseHeightOffset;
   varying float vDeltaPos;
 #endif
 
+#ifdef GROUND_HEIGHT
+  uniform sampler2D uGroundHeightSampler;
+#endif
+
 void main(void)
 {
-  //Real distance between samples
-  float DeltaFloor = uv2.x;
+  vec4 groundTex = texture2D(uGroundHeightSampler, color.xy);
 
-  //smoothed distance between samples
-  float deltaPos = uv2.y;
-  vec2 deltaPosVec = vec2(1., 1.)*deltaPos;
-
-
-  //Floor the grid to have constant vextex position
-  vec3 deltaPlayerPos = mod(uPlayerPos, DeltaFloor);
-
+  //Floor the grid to have constant vertex position
+  vec3 deltaPlayerPos = mod(uPlayerPos, color.z);
   vec2 vertexPos = position.xz-deltaPlayerPos.xz;
 
+  vec3 pos = vec3(vertexPos.x,
+                  groundTex.x,
+                  vertexPos.y);
+  vec3 normal = vec3(groundTex.y,
+                     sqrt(1.-groundTex.y*groundTex.y-groundTex.z*groundTex.z),
+                     groundTex.z);
 
-  //Compute the height of the vertex
-  vec3 pos = computeVertexPos(vertexPos, deltaPosVec, uPlayerPos.xz);
-
-  //Compute the normal of the vertex
-  vec3 posX = computeVertexPos(vertexPos+vec2(deltaPos, 0.), deltaPosVec, uPlayerPos.xz);
-  vec3 posY = computeVertexPos(vertexPos+vec2(0., deltaPos), deltaPosVec, uPlayerPos.xz);
-  vec3 normal = normalize(cross(pos-posX, posY-pos));
 
   //Fill some varying
   #ifdef GRASS
@@ -43,7 +39,7 @@ void main(void)
   #endif
   vNormal = normalize(normal);
   vVertexPosInWorld = pos;
-  vDiffuseHeightOffset = getDiffuseHeightOffset(pos.xz+uPlayerPos.xz, deltaPosVec);
+  vDiffuseHeightOffset = groundTex.a;
 
   //Compute the screen position
   gl_Position = uViewProjection * vec4(pos, 1.);

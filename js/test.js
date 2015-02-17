@@ -1,12 +1,14 @@
 function Test(number)
 {
-    this.RTTPrinterSize = 256;
+    this.RTTPrinterSizeX = 512;
+    this.RTTPrinterSizeY = 512;
     this.RTTBinded = false;
 
     this.skytest = {};
     this.addTest('Sky', 1);
     this.addTest('Cloud', 2);
     this.addTest('Ground', 3);
+    this.addTest('SpriteGen', 4);
 
 
     this.startTest(number);
@@ -24,7 +26,67 @@ Test.prototype.startTest = function(num){
       this.startCloudTest();
     }else if (num == 3){
       this.startGroundTest();
+    }else if (num == 4){
+      this.startSpriteGenTest();
     }
+}
+
+Test.prototype.startSpriteGenTest = function(){
+
+    _$body.append('<div id="loadPercent" class="controlpanelBlock ui-widget-content">Loading: 0 %</div>');
+    var $loadPercent = $('#loadPercent');
+
+    var loader = new Loader(function(loadPercent){
+        $loadPercent.html('Loading: '+(Math.floor(loadPercent*100.))+' %');
+        $('#canvas').css('display', 'none');
+
+    }, function(){
+        $loadPercent.css('display', 'none');
+        $('#canvas').css('display', 'block');
+    });
+    //Build the world
+    loader.add(function(loaderCallback, loadingCallback){
+        this.skytest.world = new World($('#canvas'));
+        this.skytest.camera = new Camera(CameraType_ArcRotate, new BABYLON.Vector3(0, 250, 0));
+        this.skytest.player = new Player(this.skytest.camera);
+
+        this.skytest.camera.activate();
+        this.skytest.camera.enableControl();
+
+        //Add control panel
+        this.createSpriteGenTestRTTPrinter();
+
+        //Render loop
+        this.skytest.world.startRendering(function(){
+            if (this.skytest.player){
+                this.skytest.player.update();
+            }
+            if (this.skytest.camera){
+                this.skytest.camera.update();
+            }
+            if (this.skytest.world){
+                this.skytest.world.update();
+            }
+            if (this.skytest.spriteGenerator){
+                this.skytest.spriteGenerator.update();
+            }
+
+            this.printRTT(this.rttTextureToRender);
+
+
+            if (this.skytest.world.scene.getAnimationRatio()){
+                _config.dt = 0.01 * this.skytest.world.scene.getAnimationRatio();
+                _config.time += _config.dt;
+                _config.step += 1;
+            }
+
+        }.bind(this));
+
+        this.skytest.spriteGenerator = new SpriteGenerator();
+        this.skytest.spriteGenerator.load(loaderCallback, loadingCallback);
+    }.bind(this));
+
+    loader.start();
 }
 
 Test.prototype.startGroundTest = function(){
@@ -44,7 +106,7 @@ Test.prototype.startGroundTest = function(){
     //Build the world
     loader.add(function(loaderCallback, loadingCallback){
         this.skytest.world = new World($('#canvas'));
-        this.skytest.camera = new Camera(CameraType_ArcRotate, new BABYLON.Vector3(0, 150, 0));
+        this.skytest.camera = new Camera(CameraType_ArcRotate, new BABYLON.Vector3(0, 250, 0));
         this.skytest.player = new Player(this.skytest.camera);
 
         this.skytest.camera.activate();
@@ -90,6 +152,7 @@ Test.prototype.startGroundTest = function(){
     }.bind(this));
 
     loader.add(function(loaderCallback, loadingCallback){
+    /*
         //Add a wireframe grid ground
         this.skytest.groundWire = new BABYLON.Mesh.CreateGround("groundWire", 20000, 20000, 255,
                                                                 this.skytest.world.scene, false);
@@ -97,10 +160,10 @@ Test.prototype.startGroundTest = function(){
         this.skytest.groundWire.material = new BABYLON.StandardMaterial("groundWireMat",
                                                                         this.skytest.world.scene);
         this.skytest.groundWire.material.wireframe = true;
-        this.skytest.groundWire.material.alpha = 0.2;
+        //this.skytest.groundWire.material.alpha = 0.2;
         this.skytest.groundWire.material.diffuseColor = new BABYLON.Color3(0.5, 0.5, 0.5);
         this.skytest.groundWire.material.specularColor = new BABYLON.Color3(0.0, 0.0, 0.0);
-
+*/
 
         //Add the ground
         this.skytest.ground = new Ground(this.skytest.camera, this.skytest.sky.light);
@@ -231,7 +294,7 @@ Test.prototype.createSkyTestProfiler = function(){
     }.bind(this));
 }
 
-Test.prototype.createGroundTestRTTPrinter = function(){
+Test.prototype.createSpriteGenTestRTTPrinter = function(){
     this.initRTTPrinter();
     this.initControlPanelSection(this.$rttPanel, this.$rttTitle, 'None');
     this.initControlPanelSection(this.$rttPanel, this.$rttTitle, 'ColorMap');
@@ -241,9 +304,35 @@ Test.prototype.createGroundTestRTTPrinter = function(){
     var f = function(name){
         this.RTTBinded = true;
         if (name=="ColorMap"){
-            this.rttTextureToRender.material.texture = this.skytest.ground.treeTex['Eucalyptus'].colorMipmap;
+            this.rttTextureToRender.material.texture = this.skytest.spriteGenerator.colorTex;
         }else if (name=="NormalMap"){
-            this.rttTextureToRender.material.texture = this.skytest.ground.treeTex['Eucalyptus'].normalMipmap;
+            this.rttTextureToRender.material.texture = this.skytest.spriteGenerator.normalTex;
+        }else{
+            this.rttTextureToRender.material.texture = null;
+            this.RTTBinded = false;
+        }
+    }.bind(this)
+
+    this.$rttPanel.on("tabsactivate", function(e, ui){
+        f(ui.newTab.children().html());
+    });
+    f("None");
+}
+
+
+Test.prototype.createGroundTestRTTPrinter = function(){
+    this.initRTTPrinter();
+    this.initControlPanelSection(this.$rttPanel, this.$rttTitle, 'None');
+    this.initControlPanelSection(this.$rttPanel, this.$rttTitle, 'HeightMap');
+    this.initControlPanelSection(this.$rttPanel, this.$rttTitle, 'SpriteMap');
+    this.startControlPanel(this.$rttPanel);
+
+    var f = function(name){
+        this.RTTBinded = true;
+        if (name=="HeightMap"){
+            this.rttTextureToRender.material.texture = this.skytest.ground.groundHeightTexture;
+        }else if (name=="SpriteMap"){
+            this.rttTextureToRender.material.texture = this.skytest.ground.spriteHeightTexture;
         }else{
             this.rttTextureToRender.material.texture = null;
             this.RTTBinded = false;
@@ -382,12 +471,12 @@ Test.prototype.initRTTPrinter = function(){
     this.$rttPanel = $('#rttprinter');
     this.$rttTitle = $('#rttprinter ul');
     this.$rttcanvas = $('#rttcanvas');
-    this.$rttcanvas.css({width: this.RTTPrinterSize+'px', height: this.RTTPrinterSize+'px'});
-    this.$rttcanvas[0].width = this.RTTPrinterSize;
-    this.$rttcanvas[0].height = this.RTTPrinterSize;
+    this.$rttcanvas.css({width: this.RTTPrinterSizeX+'px', height: this.RTTPrinterSizeY+'px'});
+    this.$rttcanvas[0].width = this.RTTPrinterSizeX;
+    this.$rttcanvas[0].height = this.RTTPrinterSizeY;
     this.rttCtx = this.$rttcanvas[0].getContext("2d");
 
-    this.rttTextureToRender = new BABYLON.RenderTargetTexture("RTTTEx", this.RTTPrinterSize,
+    this.rttTextureToRender = new BABYLON.RenderTargetTexture("RTTTEx", {width:this.RTTPrinterSizeX, height:this.RTTPrinterSizeY},
                                                               _config.world.scene, false);
     this.rttTextureToRender.material = new CopyMaterial("RTTMaterial", _config.world.scene);
     this.rttMesh1 = createVertexPassthroughMesh(this.rttTextureToRender.material,
@@ -423,18 +512,18 @@ Test.prototype.printRTT = function(tex){
         gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texture, 0);
 
         // Read the contents of the framebuffer
-        var data = new Uint8Array(this.RTTPrinterSize * this.RTTPrinterSize * 4);
-        gl.readPixels(0, 0, this.RTTPrinterSize, this.RTTPrinterSize, gl.RGBA, gl.UNSIGNED_BYTE, data);
+        var data = new Uint8Array(this.RTTPrinterSizeX * this.RTTPrinterSizeY * 4);
+        gl.readPixels(0, 0, this.RTTPrinterSizeX, this.RTTPrinterSizeY, gl.RGBA, gl.UNSIGNED_BYTE, data);
 
         gl.deleteFramebuffer(framebuffer);
 
-        var imageData = this.rttCtx.createImageData(this.RTTPrinterSize, this.RTTPrinterSize);
+        var imageData = this.rttCtx.createImageData(this.RTTPrinterSizeX, this.RTTPrinterSizeY);
         imageData.data.set(data);
         this.rttCtx.putImageData(imageData, 0, 0);
         this.rttIsFilled = false;
     }else{
         if (!this.rttIsFilled){
-            this.rttCtx.fillRect(0, 0, this.RTTPrinterSize, this.RTTPrinterSize);
+            this.rttCtx.fillRect(0, 0, this.RTTPrinterSizeX, this.RTTPrinterSizeY);
             this.rttIsFilled = true;
         }
     }

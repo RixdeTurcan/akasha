@@ -18,6 +18,7 @@ function World($canvas){
             console.log(this.engine._compiledEffects[p].name+': '+this.engine._compiledEffects[p]._compilationError);
     }.bind(this);
     _gl = this.engine._gl;
+    //_gl.getExtension('OES_texture_float_linear');
 
     this.scene.clearColor = new BABYLON.Color3(0, 0, 0);
 

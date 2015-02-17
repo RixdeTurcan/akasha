@@ -42,13 +42,37 @@ uniform float uNbCols;
 varying float vAngleFactor;
 varying vec2 vUv1;
 varying vec2 vUv2;
+varying vec2 vCoord1;
+varying vec2 vCoord2;
 
 vec4 textureSprite2D(sampler2D sampler)
 {
-  vec4 t1 = texture2D(sampler, vUv1);
-  vec4 t2 = texture2D(sampler, vUv2);
-  vec4 tMix = mix(t1, t2, vAngleFactor);
-  return tMix;
+  if (vAngleFactor<=0.001)
+  {
+    vec2 uv1 = (vec2(clamp(vUv1.x, 0., 1.), vUv2.y)+vCoord1)/(vec2(uNbRows, uNbCols));
+    vec4 t1 = texture2D(sampler, uv1);
+
+    return t1;
+  }
+  else if (vAngleFactor>0.999)
+  {
+    vec2 uv2 = (vec2(clamp(vUv2.x, 0., 1.), vUv2.y)+vCoord2)/(vec2(uNbRows, uNbCols));
+    vec4 t2 = texture2D(sampler, uv2);
+
+    return t2;
+  }
+  else
+  {
+    vec2 uv1 = (vec2(clamp(vUv1.x, 0., 1.), vUv2.y)+vCoord1)/(vec2(uNbRows, uNbCols));
+    vec4 t1 = texture2D(sampler, uv1);
+
+    vec2 uv2 = (vec2(clamp(vUv2.x, 0., 1.), vUv2.y)+vCoord2)/(vec2(uNbRows, uNbCols));
+    vec4 t2 = texture2D(sampler, uv2);
+
+    vec4 tMix = mix(t1, t2, vAngleFactor);
+
+    return tMix;
+  }
 }
 
 
@@ -60,11 +84,11 @@ void main() {
   #ifdef DIFFUSE
     diffuseBaseColor = textureSprite2D(uDiffuseSampler);
   #endif
-  if (diffuseBaseColor.a<0.1){
-    gl_FragColor = color;
-    return;
-  }
 
+  if (diffuseBaseColor.a<0.5)
+  {
+    discard;return;
+  }
 
   //Compute the direction and the distance eye -> vertex
   vec3 eyeToVertexDir = uEyePosInWorld-vVertexPosInWorld;
@@ -100,7 +124,7 @@ void main() {
     #ifdef LIGHT0_TYPE_DIR
       lightVectorW = normalize(-uLightData0.xyz);
     #endif
-    diffuseColor += uLightDiffuse0 * computeDiffuseFactor(lightVectorW, normal, 0.9, 0.4);
+    diffuseColor += uLightDiffuse0 * computeDiffuseFactor(lightVectorW, normal, 1., 0.5);
   #endif
   #ifdef LIGHT1
     #ifdef LIGHT1_TYPE_POINT
@@ -109,7 +133,7 @@ void main() {
     #ifdef LIGHT1_TYPE_DIR
       lightVectorW = normalize(-uLightData1.xyz);
     #endif
-    diffuseColor += uLightDiffuse1 * computeDiffuseFactor(lightVectorW, normal, 0.9, 0.4);
+    diffuseColor += uLightDiffuse1 * computeDiffuseFactor(lightVectorW, normal, 1., 0.5);
   #endif
 
   color = vec4(diffuseColor, 1.) * diffuseBaseColor;
@@ -125,7 +149,7 @@ void main() {
   //Premultiplied alpha
   #ifdef PREMUL_ALPHA
     //color.rgb *= color.a;
-    color.a *= color.a * color.a;
+    //color.a *= color.a * color.a;
   #endif
   gl_FragColor = color;
 }

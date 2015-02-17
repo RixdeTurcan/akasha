@@ -62,6 +62,14 @@ GroundMaterial.prototype.getRenderTargetTextures = function () {
         this.renderImpostorTex = false;
     }
 
+    if (this.groundHeightTexture && this.groundHeightTexture.isRenderTarget){
+                this._renderTargets.push(this.groundHeightTexture);
+    }
+
+    if (this.spriteHeightTexture && this.spriteHeightTexture.isRenderTarget){
+                this._renderTargets.push(this.spriteHeightTexture);
+    }
+
     return this._renderTargets;
 };
 
@@ -74,6 +82,14 @@ GroundMaterial.prototype.isReady = function (mesh) {
             return false;
         } else {
             defines.push("#define NOISE_TEXTURE");
+        }
+    }
+
+    if (this.groundHeightTexture) {
+        if (!this.groundHeightTexture.isReady()) {
+            return false;
+        } else {
+            defines.push("#define GROUND_HEIGHT");
         }
     }
 
@@ -210,13 +226,14 @@ GroundMaterial.prototype.isReady = function (mesh) {
         this._effect = engine.createEffect({vertex: this.shader.vertexElem,
                                             fragment: this.shader.fragmentElem},
                                            [BABYLON.VertexBuffer.PositionKind,
-                                            BABYLON.VertexBuffer.UV2Kind],
+                                            BABYLON.VertexBuffer.ColorKind],
                                            ['uViewProjection', 'uEyePosInWorld',
                                            'uFogInfos', 'uVerticalShift',
                                            'uTangentScreenDist', 'uPlayerPos',
                                            'uLightData0', 'uLightDiffuse0',
                                            'uLightData1', 'uLightDiffuse1'],
-                                           ['uNoiseSampler', 'uSkySampler', 'uGrassSampler',
+                                           ['uNoiseSampler', 'uGroundHeightSampler',
+                                            'uSkySampler', 'uGrassSampler',
                                             'uDiffuse1Sampler', 'uDiffuse2Sampler', 'uDiffuse3Sampler',
                                             'uDiffuseFar1Sampler', 'uDiffuseFar2Sampler', 'uDiffuseFar3Sampler',
                                             'uDiffuseNormal1Sampler', 'uDiffuseNormal2Sampler', 'uDiffuseNormal3Sampler'],
@@ -234,6 +251,10 @@ GroundMaterial.prototype.unbind = function ()
 {
     if (this.skyTexture && this.skyTexture.isRenderTarget) {
         this._effect.setTexture("uSkySampler", null);
+    }
+
+    if (this.groundHeightTexture && this.groundHeightTexture.isRenderTarget) {
+        this._effect.setTexture("uGroundHeightSampler", null);
     }
 };
 
@@ -258,6 +279,11 @@ GroundMaterial.prototype.bind = function (world, mesh) {
     // grass
     if (this.grassTexture) {
         this._effect.setTexture("uGrassSampler", this.grassTexture);
+    }
+
+    // ground height
+    if (this.groundHeightTexture) {
+        this._effect.setTexture("uGroundHeightSampler", this.groundHeightTexture);
     }
 
     // diffuse 1

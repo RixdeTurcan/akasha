@@ -18,6 +18,7 @@ Number.prototype.mod = function(n){ return ((this%n)+n)%n; }
 
 function sign(x) { return x > 0 ? 1 : -1; }
 
+function log(x, i) { return Math.log(x) / Math.log(i); }
 
 function onReady(elem, func, refreshTime)
 {
@@ -48,7 +49,7 @@ function replaceStandardMaterial(materials, id, newMat, mesh, isHidden, isHidden
     materials[id].diffuseTexture = diffuseTexture;
     materials[id].bumpTexture = bumpTexture;
     materials[id].backFaceCulling = backFaceCulling;
-    materials[id].alphaBlending = alphaBlending;
+    //materials[id].alphaBlending = alphaBlending;
     materials[id].alphaTesting = alphaTesting;
     materials[id].alpha = alpha;
 
@@ -563,7 +564,7 @@ function createGrid(name, subdivisions, uvXMin, uvXMax, uvYMin, uvYMax, scene, u
     return ground;
 }
 
-function Grid()
+function Grid(texWidth, texHeight)
 {
     this.positions = [];
     this.indices = [];
@@ -576,9 +577,18 @@ function Grid()
     this.reorderedPositions = [];
     this.reorderedUv2s = [];
 
-    this.transitionSizeBot = 1;
+    this.transitionSizeBot = 0;
     this.transitionSizeTop = 2;
     this.nbUnit = 2;
+    this.finalNbUnit = 2;
+    this.unitSize = 1.;
+    this.nbLod = 1;
+    this.betaRange = 0.;
+    this.betaCenterDist = 0.;
+    this.distMin = 0.;
+
+    this.texWidth = texWidth;
+    this.texHeight = texHeight;
 }
 
 //Number of points in a square of radius r
@@ -642,6 +652,30 @@ Grid.prototype.f4s = function(a0, b0, b1, b2, invert)
     }
 }
 
+Grid.prototype.v = function(px, py, size, isTransitionTop)
+{
+    var s0 = this.unitSize;
+    var N = this.nbUnit;
+    var T = this.transitionSizeBot;
+
+    var p = Math.max(Math.abs(px), Math.abs(py));
+    var l = Math.max(0., Math.ceil(log(p/(s0*(N+T)), 2.))) + (isTransitionTop?1.:0.);
+
+    var s = s0*Math.pow(2., l);
+
+    var dx = Math.round(px/s);
+    var dy = Math.round(py/s);
+
+    var x = N+T+1+dx+l*(2.*(N+T+1.)+1.);
+    var y = N+T+1+dy;
+
+    var u = x/this.texWidth;
+    var v = y/this.texHeight;
+
+    this.uv2s.push(u, v, size);
+
+}
+
 Grid.prototype.createGrid = function(unitSize, nbUnit, finalNbUnit, nbLod, lodMin, withoutIndices)
 {
 
@@ -649,8 +683,12 @@ Grid.prototype.createGrid = function(unitSize, nbUnit, finalNbUnit, nbLod, lodMi
     this.indices = [];
     this.uv2s = [];
     this.nbUnit = nbUnit;
+    this.finalNbUnit = finalNbUnit;
+    this.unitSize = unitSize;
+    this.nbLod = nbLod;
 
     this.positions.push(0., 0., 0.);
+    this.v(0., 0., 1., false);
 
     for (var l = 1; l <= nbLod; l++){
         var s = unitSize * Math.pow(2, l-1);
@@ -667,36 +705,38 @@ Grid.prototype.createGrid = function(unitSize, nbUnit, finalNbUnit, nbLod, lodMi
             var factor = Math.min(1., (r-radiusMin)/(radiusMax-radiusMin));
             var s3 = Math.floor(s*(1.5+1.5*Math.pow(factor, 2.)));
 
-            //Parameters
-            for(var j = 0; j < 8*r; j++){
-                this.uv2s.push(s, s3);
-            }
+            var isTransitionTop = (r-radiusMin<this.transitionSizeTop && l>1);
 
-            //Positions
+            //Positions and uvs
             for(var j = 0; j < r; j++){
                 this.positions.push(j*s,
                                     0.,
                                     r*s);
+                this.v(j*s, r*s, s, isTransitionTop);
             }
             for(var j = 0; j < 2*r; j++){
                 this.positions.push(r*s,
                                     0.,
                                     (r-j)*s);
+                this.v(r*s, (r-j)*s, s, isTransitionTop);
             }
             for(var j = 0; j < 2*r; j++){
                 this.positions.push((r-j)*s,
                                     0.,
                                     -r*s);
+                this.v((r-j)*s, -r*s, s, isTransitionTop);
             }
             for(var j = 0; j < 2*r; j++){
                 this.positions.push(-r*s,
                                     0.,
                                     (-r+j)*s);
+                this.v(-r*s, (-r+j)*s, s, isTransitionTop);
             }
             for(var j = 0; j < r; j++){
                 this.positions.push((-r+j)*s,
                                     0.,
                                     r*s);
+                this.v((-r+j)*s, r*s, s, isTransitionTop);
             }
 
             //Triangles
@@ -754,21 +794,28 @@ Grid.prototype.createGrid = function(unitSize, nbUnit, finalNbUnit, nbLod, lodMi
 
 Grid.prototype.isInFrustrum = function(x, z, beta, betaRange, betaCenterDist, distMin)
 {
-    x -= Math.cos(beta)*betaCenterDist;
-    z -= Math.sin(beta)*betaCenterDist;
+    var cx = betaCenterDist*Math.cos(beta);
+    var cz = betaCenterDist*Math.sin(beta);
+    var cl = Math.sqrt(cx*cx+cz*cz);
 
-    var angle = Math.atan2(z, x);
-    var distAngle = Math.min(Math.abs(angle+beta), Math.abs(angle-beta));
+    var CPx = x-cx;
+    var CPz = z-cz;
+    var CPl = Math.sqrt(CPx*CPx+CPz*CPz);
 
-    var dist = x*Math.cos(beta)+z*Math.sin(beta);
+    var cosAlpha = -(CPx*cx+CPz*cz)/(cl*CPl);
+    var dist = Math.sqrt((x-cx)*(x-cx)+(z-cz)*(z-cz))*cosAlpha;
 
-    return (distAngle<betaRange && dist>distMin);
+    return (cosAlpha>Math.cos(betaRange) && dist>distMin);
 }
 
 Grid.prototype.clip = function(beta, betaRange, betaCenterDist, distMin, withoutIndices, useReorderedPositions)
 {
     var position = useReorderedPositions ? this.reorderedPositions : this.positions;
     var uv2s = useReorderedPositions ? this.reorderedUv2s : this.uv2s;
+
+    this.betaRange = betaRange;
+    this.betaCenterDist = betaCenterDist;
+    this.distMin = distMin;
 
     beta = beta%(2*_pi);
     if (beta>_pi){
@@ -788,7 +835,7 @@ Grid.prototype.clip = function(beta, betaRange, betaCenterDist, distMin, without
                                   beta, betaRange, betaCenterDist, distMin)
             ){
                 this.clippedPositions.push(position[3*i], position[3*i+1], position[3*i+2]);
-                this.clippedUv2s.push(uv2s[2*i], uv2s[2*i+1]);
+                this.clippedUv2s.push(uv2s[3*i], uv2s[3*i+1], uv2s[3*i+2]);
                 positionToPositionClamped[i] = j;
                 j++;
             }
@@ -840,8 +887,9 @@ Grid.prototype.reorderPosition = function()
         this.reorderedPositions.push(positions[3*count[i].id],
                                      positions[3*count[i].id+1],
                                      positions[3*count[i].id+2]);
-        this.reorderedUv2s.push(uv2s[2*count[i].id],
-                                uv2s[2*count[i].id+1]);
+        this.reorderedUv2s.push(uv2s[3*count[i].id],
+                                uv2s[3*count[i].id+1],
+                                uv2s[3*count[i].id+2]);
     }
 }
 
@@ -862,8 +910,9 @@ Grid.prototype.makeLodMeshes = function(name, relativePositions, relativeUvs, re
             meshesPositions.push(0*relativePositions[3*j]+positions[3*i],
                                  relativePositions[3*j],//0.*relativePositions[3*j+1]+positions[3*i+1],
                                  0*relativePositions[3*j+2]+positions[3*i+2]);
-            meshesUv2s.push(uv2s[2*i],
-                            uv2s[2*i+1]);
+            meshesUv2s.push(uv2s[3*i],
+                            uv2s[3*i+1],
+                            uv2s[3*i+2]);
             meshesUvs.push(relativeUvs[2*j],
                            relativeUvs[2*j+1]);
         }
@@ -876,7 +925,7 @@ Grid.prototype.makeLodMeshes = function(name, relativePositions, relativeUvs, re
     var mesh = new BABYLON.Mesh(name, scene);
     mesh.setVerticesData(BABYLON.VertexBuffer.PositionKind, meshesPositions, updatable);
     mesh.setVerticesData(BABYLON.VertexBuffer.UVKind, meshesUvs, updatable);
-    mesh.setVerticesData(BABYLON.VertexBuffer.UV2Kind, meshesUv2s, updatable);
+    mesh.setVerticesData(BABYLON.VertexBuffer.ColorKind, meshesUv2s, updatable);
     mesh.setIndices(meshesIndices);
     //console.log(Math.round(Math.sqrt(meshesPositions.length/3))+"^2");
 
@@ -887,7 +936,7 @@ Grid.prototype.makeClippedMesh = function(name, scene, updatable)
 {
     var mesh = new BABYLON.Mesh(name, scene);
     mesh.setVerticesData(BABYLON.VertexBuffer.PositionKind, this.clippedPositions, updatable);
-    mesh.setVerticesData(BABYLON.VertexBuffer.UV2Kind, this.clippedUv2s, updatable);
+    mesh.setVerticesData(BABYLON.VertexBuffer.ColorKind, this.clippedUv2s, updatable);
     mesh.setIndices(this.clippedIndices);
     //console.log(Math.round(Math.sqrt(this.clippedPositions.length/3))+"^2");
     return mesh;
@@ -909,9 +958,9 @@ function createImpostorTextures(dir, name, textureSize, nbCols, nbRows,
                                              textureSize,
                                              scene,
                                              {
-                                                 generateMipMaps: true,
+                                                 generateMipMaps: false,
                                                  enableTextureFloat: false,
-                                                 generateDepthBuffer: false
+                                                 generateDepthBuffer: true
                                              },
                                              null,
                                              renderMat.treeTextures,
@@ -921,9 +970,9 @@ function createImpostorTextures(dir, name, textureSize, nbCols, nbRows,
                                              textureSize,
                                              scene,
                                              {
-                                                 generateMipMaps: true,
+                                                 generateMipMaps: false,
                                                  enableTextureFloat: false,
-                                                 generateDepthBuffer: false
+                                                 generateDepthBuffer: true
                                              },
                                              null,
                                              renderMat.treeTextures,
@@ -982,7 +1031,10 @@ function createImpostorTextures(dir, name, textureSize, nbCols, nbRows,
             }
           }
 
+
           for (var j=0; j<newMeshes[i].subMeshes.length; j++){
+
+
             //Add the map material
             var isColor = newMeshes[i].subMeshes[j].prop.isColor;
             var typeText = isColor?'color':'normal';
@@ -995,6 +1047,7 @@ function createImpostorTextures(dir, name, textureSize, nbCols, nbRows,
                                                                   isColor, angle, row, col, nbRows, nbCols,
                                                                   tex[keyText]),
                                     newMeshes[i], true, true);
+
             tex[keyText].subMeshIdList.push(j);
             tex[keyText].meshList.push(newMeshes[i]);
 

@@ -1,5 +1,5 @@
 attribute vec3 position;
-attribute vec2 uv2;
+attribute vec3 color;
 attribute vec2 uv;
 
 uniform mat4 uViewProjection;
@@ -19,69 +19,65 @@ uniform float uNbCols;
 varying float vAngleFactor;
 varying vec2 vUv1;
 varying vec2 vUv2;
+varying vec2 vCoord1;
+varying vec2 vCoord2;
 
 varying vec3 vVertexPosInWorld;
 
-
+#ifdef GROUND_HEIGHT
+  uniform sampler2D uGroundHeightSampler;
+#endif
 
 void main(void)
 {
-  //Floor the grid to have constant vextex position
-  vec2 vertexPos = position.xz-mod(uPlayerPos.xz, uv2.x);
-  vec2 worldPos = vertexPos+uPlayerPos.xz;
+  vec4 groundTex = texture2D(uGroundHeightSampler, color.xy);
 
-  //Randomise the position of the sprite
-  vertexPos.x += 60.*fastRand(0.0001*worldPos);
-  vertexPos.y += 60.*fastRand(0.0001*(worldPos+1985.));
-
-  //Compute the height of the vertex
-  vec3 pos = computeVertexPos(vertexPos, vec2(0., 0.), uPlayerPos.xz);
+  vec3 pos = groundTex.xyz;
 
   //Get diffuse factors
   vec3 diffuseFactors = computeDiffuseFactors(pos.y);
 
   if (diffuseFactors.y>0.4)
   {
+    vec2 worldPos = pos.xz+uPlayerPos.xz;
+    float eyeToVertexDist = length(uEyePosInWorld.xz-pos.xz);
 
     //Compute the tbn vectors
-    vec3 tangent = normalize(vec3(pos.z, 0., -pos.x));
+    vec3 normal = normalize(vec3(pos.x, 0., pos.z));
+    vec3 tangent = vec3(-normal.z, 0., normal.x);
     vec3 bitangent = vec3(0., 1., 0.);
-    vec3 normal = vec3(-tangent.z, 0., tangent.x);
 
     //Position of the sprite corners
     pos.xz += tangent.xz*(uv.x-0.5)*500.;
     pos.y += uv.y*500. - 30.;
 
     //Compute the orientation
-    float angle = 3.14*fastRand(0.0001*(worldPos+1435.));
-    angle -= atan2(tangent.z, tangent.x);
+    float angle = groundTex.a;
+    angle += atan2(tangent.z, tangent.x);
     angle = mod(angle, 6.28);
 
-
-    float id = uNbRows*uNbCols*angle/6.28;
+    float angleStep = 6.28/(uNbRows*uNbCols);
+    float id = angle/angleStep;
     float row1 = mod(id, uNbRows);
     float col1 = floor(id/uNbRows);
     float row2 = mod(id+1., uNbRows);
     float col2 = mod(floor((id+1.)/uNbRows), uNbCols);
+    float angleFactor = fract(row1);
+    row1 = floor(row1);
+    row2 = floor(row2);
 
-
-    //Modify the tangent and normal relative to the angle
-    float cosA = cos(angle);
-    float sinA = sin(angle);
-    vec3 modifiedTangent = vec3(tangent.x*cosA-tangent.z*sinA,
-                                0.,
-                                tangent.x*sinA+tangent.z*cosA);
-    vec3 modifiedNormal = vec3(-modifiedTangent.z, 0., modifiedTangent.x);
-
+    angleFactor = mix(angleFactor, floor(angleFactor+0.5), smoothstep(3500., 4000., eyeToVertexDist));
 
     //Fill some varying
-    vAngleFactor = fract(row1);
-    vUv1 = (uv+vec2(floor(row1), col1))/uNbRows;
-    vUv2 = (uv+vec2(floor(row2), col2))/uNbCols;
+    vAngleFactor = angleFactor ;
+    vUv1 = vec2(((uv.x*2.-1.)/cos(angleFactor*angleStep))*0.5+0.5, uv.y);
+    vUv2 = vec2(((uv.x*2.-1.)/cos((1.-angleFactor)*angleStep))*0.5+0.5, uv.y);
+    vCoord1 = vec2(row1, col1);
+    vCoord2 = vec2(row2, col2);
     #ifdef BUMP
-      vNormal = modifiedNormal;
+      vNormal = normal;
       vBitangent = bitangent;
-      vTangent = modifiedTangent;
+      vTangent = tangent;
     #endif
     vVertexPosInWorld = pos;
     //Compute the screen position
@@ -91,6 +87,8 @@ void main(void)
   {
     vUv1 = uv;
     vUv2 = uv;
+    vCoord1 = vec2(0., 0.);
+    vCoord2 = vec2(0., 0.);
     vAngleFactor = 0.;
 
     #ifdef BUMP

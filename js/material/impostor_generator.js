@@ -26,6 +26,8 @@ function ImpostorGeneratorMaterial(name, scene, isColorMap, angle, row, col, nbR
 
     this.alpha = 1.;
 
+    this.wireframe = false;
+
     this.backFaceCulling = false;
     this._scene = scene;
     scene.materials.push(this);

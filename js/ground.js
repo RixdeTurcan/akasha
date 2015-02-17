@@ -9,7 +9,7 @@ function Ground(camera, light){
     this.loading = false;
     this.loaderCallback = function(){};
     this.loadingCallback = function(){};
-    this.nbTextureToLoad = 6;
+    this.nbTextureToLoad = 8;
     this.nbTextureLoaded = 0;
     this.textureLoaded = false;
     this.groundMeshLoaded = false;
@@ -22,35 +22,48 @@ Ground.prototype.load = function(loaderCallback, loadingCallback){
     this.loaderCallback = loaderCallback;
     this.loadingCallback = loadingCallback;
 
-    this.material = new GroundMaterial("GroundMaterial", _config.world.scene, this);
+    var loadingFullCallback = function(percent){
+        loadingCallback(percent);
+        if (this.groundMeshLoaded && this.treeMeshLoaded && this.textureLoaded && this.loading){
+            this.loading = false;
+            loaderCallback();
+        }
+    }.bind(this);
 
+    this.material = new GroundMaterial("GroundMaterial", _config.world.scene, this);
+/*
     this.treeTex = {}
-    this.treeTex.Eucalyptus = createImpostorTextures('asset/pine/', 'Eucalyptus', 4096, 8, 8, this.material,
+    this.treeTex.Eucalyptus = createImpostorTextures('asset/pine/', 'Eucalyptus', 2048, 8, 8, this.material,
                                                      _config.world.scene, function(){
                                                          this.loadingPercent += 0.2;
                                                          loadingCallback(this.loadingPercent);
                                                          this.material.renderImpostorTex = true;
                                                      }.bind(this));
-/*
-    this.treeTex.arvore = createImpostorTextures('asset/pine2/', 'arvore', 512, 1, 1,
-                                                     this.material, _config.world.scene);
 
+    this.treeTex.arvore = createImpostorTextures('asset/pine2/', 'arvore', 4096, 8, 8,
+                                                     this.material, _config.world.scene, function(){
+                                                         this.loadingPercent += 0.2;
+                                                         loadingCallback(this.loadingPercent);
+                                                         this.material.renderImpostorTex = true;
+                                                     }.bind(this));
 */
+
     this.treeMaterial = new SpritesMaterial("TreeMaterial", _config.world.scene, 8, 8);
 
     this.nbQuadrant = 40;
     this.meshToDisplay = 0;
 
     this.mesh = [];
-    this.grid = new Grid();
-    this.grid.createGrid(20., 100, 70, 5, 1);
+    this.grid = new Grid(1024, 256);
+    this.grid.createGrid(20., 125, 125, 4, 1);
+    this.beta = [];
 
     //Ground
     var groundFunc = function(i){
         var beta = 2.*_pi*i/this.nbQuadrant;
-        var betaRange = _pi/5.0;
+        var betaRange = _pi/5;
 
-        this.grid.clip(beta+_pi, betaRange, -750., 750.);
+        this.grid.clip(beta+_pi, betaRange, -950., 950.);
         this.mesh[i] = this.grid.makeClippedMesh("ground"+i, _config.world.scene);
 
         this.mesh[i].material = new BABYLON.MultiMaterial("groundMultiMat", _config.world.scene);
@@ -60,8 +73,9 @@ Ground.prototype.load = function(loaderCallback, loadingCallback){
         this.mesh[i].subMeshes[0].isInFrustum = function(){return true;};
         this.mesh[i].subMeshes[0].isHiddenScreen = true;
 
-        this.loadingPercent += 0.25/this.nbQuadrant;
-        loadingCallback(this.loadingPercent);
+        this.beta[i] = beta+_pi;
+
+        this.loadingPercent += 0.35/this.nbQuadrant;
 
         if (i<this.nbQuadrant){
             setTimeout(function(){
@@ -70,13 +84,15 @@ Ground.prototype.load = function(loaderCallback, loadingCallback){
         }else{
             this.groundMeshLoaded = true;
         }
+
+        loadingFullCallback(this.loadingPercent);
     }.bind(this);
     groundFunc(0);
 
 
     //Trees
-    this.treeGrid = new Grid();
-    this.treeGrid.createGrid(250., 80, 80, 1, 1);
+    this.treeGrid = new Grid(128, 128);
+    this.treeGrid.createGrid(320., 60, 60, 1, 1);
     this.treeGrid.reorderPosition();
     this.treeMesh = [];
 
@@ -96,7 +112,7 @@ Ground.prototype.load = function(loaderCallback, loadingCallback){
         var beta = 2.*_pi*i/this.nbQuadrant;
         var betaRange = _pi/4.0;
 
-        this.treeGrid.clip(beta+_pi, betaRange, -750., 750., true, true);
+        this.treeGrid.clip(beta+_pi, betaRange, -950., 950., true, true);
 
         this.treeMesh[i] = this.treeGrid.makeLodMeshes("trees"+i, spritePos, spiteUv, spriteIndices,
                                                    _config.world.scene, false);
@@ -108,8 +124,7 @@ Ground.prototype.load = function(loaderCallback, loadingCallback){
         this.treeMesh[i].subMeshes[0].isInFrustum = function(){return true;};
         this.treeMesh[i].subMeshes[0].isHiddenScreen = true;
 
-        this.loadingPercent += 0.25/this.nbQuadrant
-        loadingCallback(this.loadingPercent);
+        this.loadingPercent += 0.35/this.nbQuadrant
 
         if (i<this.nbQuadrant){
             setTimeout(function(){
@@ -118,6 +133,9 @@ Ground.prototype.load = function(loaderCallback, loadingCallback){
         }else{
             this.treeMeshLoaded = true;
         }
+
+        loadingFullCallback(this.loadingPercent);
+
     }.bind(this);
     treeFunc(0);
 
@@ -147,13 +165,18 @@ Ground.prototype.load = function(loaderCallback, loadingCallback){
 
     var loadingFunction = function(){
         this.nbTextureLoaded++;
-        this.loadingPercent += 0.1/this.nbTextureToLoad;
+        this.loadingPercent += 0.3/this.nbTextureToLoad;
         if (this.nbTextureLoaded>=this.nbTextureToLoad){
             this.textureLoaded = true;
-        }else{
-            loadingCallback(this.loadingPercent);
         }
+        loadingFullCallback(this.loadingPercent);
     }.bind(this);
+
+
+
+
+    this.treeMaterial.diffuseTexture =  new BABYLON.Texture("asset/pine/impostor_color.png", _config.world.scene, false, true, BABYLON.Texture.TRILINEAR_SAMPLINGMODE, loadingFunction);
+    this.treeMaterial.bumpTexture =  new BABYLON.Texture("asset/pine/impostor_normal.png", _config.world.scene, false, true, BABYLON.Texture.TRILINEAR_SAMPLINGMODE, loadingFunction);
 
     //Noise texture
     this.noiseTexture = new BABYLON.Texture("asset/noise.png", _config.world.scene, true, false, BABYLON.Texture.TRILINEAR_SAMPLINGMODE, loadingFunction);
@@ -198,6 +221,44 @@ Ground.prototype.load = function(loaderCallback, loadingCallback){
     this.material.diffuseNormal3Texture = new BABYLON.Texture("asset/stone.png",  _config.world.scene, false, false, BABYLON.Texture.TRILINEAR_SAMPLINGMODE, loadingFunction);
     this.material.diffuseNormal3Texture.wrapU = BABYLON.Texture.WRAP_ADDRESSMODE;
     this.material.diffuseNormal3Texture.wrapV = BABYLON.Texture.WRAP_ADDRESSMODE;
+
+
+    //Ground height
+    this.groundHeightTexture = createRenderTargetTexture('groundHeightTexture',
+                                                         {width:1024, height:256},
+                                                         _config.world.scene,
+                                                         {
+                                                             generateMipMaps: false,
+                                                             enableTextureFloat: true,
+                                                             generateDepthBuffer: false
+                                                         },
+                                                         new GroundHeightMaterial('groundHeightMaterial',
+                                                                                  1024, this, this.grid,
+                                                                                  _config.world.scene),
+                                                         this.material,
+                                                         "passthrough");
+    this.groundHeightTexture.material.noiseTexture = this.noiseTexture;
+
+
+    //Sprite height
+    this.spriteHeightTexture = createRenderTargetTexture('spriteHeightTexture',
+                                                         {width:128, height:128},
+                                                         _config.world.scene,
+                                                         {
+                                                             generateMipMaps: false,
+                                                             enableTextureFloat: true,
+                                                             generateDepthBuffer: false
+                                                         },
+                                                         new SpriteHeightMaterial('spriteHeightMaterial',
+                                                                                  128, this, this.treeGrid,
+                                                                                  _config.world.scene),
+                                                         this.material,
+                                                         "passthrough");
+    this.spriteHeightTexture.material.noiseTexture = this.noiseTexture;
+    this.treeMaterial.spriteHeightTexture = this.spriteHeightTexture;
+
+
+
 
 /*
     //Reflection
@@ -304,6 +365,16 @@ Ground.prototype.addShadowTexture = function(shadowTexture)
 Ground.prototype.update = function()
 {
     if (!this.loaded){return;}
+
+    if (this.groundMeshLoaded && this.treeMeshLoaded){
+        this.mesh[this.meshToDisplay].subMeshes[0].isHiddenScreen = true;
+        this.treeMesh[this.meshToDisplay].subMeshes[0].isHiddenScreen = true;
+
+        this.meshToDisplay = Math.round((_config.player.angle.mod(2.*_pi))/(2.*_pi/this.nbQuadrant)).mod(this.nbQuadrant);
+
+        this.mesh[this.meshToDisplay].subMeshes[0].isHiddenScreen = false;
+        this.treeMesh[this.meshToDisplay].subMeshes[0].isHiddenScreen = false;
+    }
 /*
     this.material.projectedGrid.compute(_config.world.cameraPos,
                                         _config.world.transformMat,
@@ -315,15 +386,8 @@ Ground.prototype.update = function()
     this.shadowHeightTexture.material.deltaPos = this.shadowMapPreviousPos.scale(-1);
     this.shadowTexture.material.deltaPos = this.shadowMapPreviousPos.scale(-1);
 */
+/*
     if (this.groundMeshLoaded && this.treeMeshLoaded){
-        this.mesh[this.meshToDisplay].subMeshes[0].isHiddenScreen = true;
-        this.treeMesh[this.meshToDisplay].subMeshes[0].isHiddenScreen = true;
-
-        this.meshToDisplay = Math.round((_config.player.angle.mod(2.*_pi))/(2.*_pi/this.nbQuadrant)).mod(this.nbQuadrant);
-
-        this.mesh[this.meshToDisplay].subMeshes[0].isHiddenScreen = false;
-        this.treeMesh[this.meshToDisplay].subMeshes[0].isHiddenScreen = false;
-
         var impostorfunc = function(k, nb, color){
             if (k>=nb){
                 if (color){
@@ -334,6 +398,11 @@ Ground.prototype.update = function()
                     for(var i in this.treeTex){
                         this.treeMaterial.diffuseTexture = this.treeTex[i].colorMipmap;
                         this.treeMaterial.bumpTexture = this.treeTex[i].normalMipmap;
+
+                        this.treeMaterial.diffuseTexture =  new BABYLON.Texture("asset/pine/impostor_color.png", _config.world.scene);
+                        this.treeMaterial.diffuseTexture =  new BABYLON.Texture("asset/pine/impostor_normal.png", _config.world.scene);
+                        //this.treeMaterial.bumpTexture =  new BABYLON.Texture("asset/test.png", _config.world.scene);
+
                     }
                     this.loading = false;
                     this.loaderCallback();
@@ -371,5 +440,5 @@ Ground.prototype.update = function()
             this.impostorTexRendering = true;
             impostorfunc(0, nb, true);
         }
-    }
+    }*/
 }

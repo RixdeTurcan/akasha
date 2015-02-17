@@ -26,9 +26,9 @@ uniform float uCol;
 uniform float uNbRows;
 uniform float uNbCols;
 
+
 void main(void)
 {
-
   #ifdef DIFFUSE
     vDiffuseUV = vec2(uDiffuseMatrix * vec4(uv, 1.0, 0.0));
   #endif
@@ -36,7 +36,15 @@ void main(void)
   #ifndef RENDER_COLOR
     #ifdef BUMP
       vBumpUV = vec2(uBumpMatrix * vec4(uv, 1.0, 0.0));
-      vNormal = normal;
+
+      vec3 n = vec3(normal.x*cos(uAngle)-normal.z*sin(uAngle),
+                    normal.y,
+                    normal.x*sin(uAngle)+normal.z*cos(uAngle));
+
+
+      vNormal = n;
+
+
       vec3 t1 = cross(vNormal, vec3(0., 0., 1.));
       vec3 t2 = cross(vNormal, vec3(0., 1., 0.));
       if (length(t1) > length(t2))

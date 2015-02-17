@@ -48,6 +48,7 @@ float getShapeNoise(vec2 pos, vec2 deltaPos, mat4 uIslandIData2)
   return computeOctaves(uIslandIData2[2].xyz, uIslandIData2[3].xy, pos, deltaPos, uShanonMargin);
 }
 
+//Get the island height shift
 float getHeightShiftIslandI(vec2 realPos, vec2 deltaPos, mat4 uIslandIData1, mat4 uIslandIData2)
 {
    vec2 center = vec2(uIslandIData1[0].a, uIslandIData1[1].a);
@@ -73,6 +74,7 @@ float getHeightShiftIslandI(vec2 realPos, vec2 deltaPos, mat4 uIslandIData1, mat
    }
 }
 
+//Compute the ground position
 vec3 computeVertexPos(vec2 pos, vec2 deltaPos, vec2 playerPos)
 {
    vec2 realPos = pos + playerPos;
@@ -83,11 +85,11 @@ vec3 computeVertexPos(vec2 pos, vec2 deltaPos, vec2 playerPos)
    return vec3(pos.x, uMaxHeight*height, pos.y);
 }
 
+//Get the diffuse height variation offset
 float getDiffuseHeightOffset(vec2 pos, vec2 deltaPos)
 {
   return getDiffuseNoise(pos, deltaPos)*uIslandDiffuseNoiseAmplitude;
 }
-
 
 #ifdef DIFFUSE_FAR_1
   float uDiffuseFar1Limit = -1.;
