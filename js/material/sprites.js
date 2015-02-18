@@ -29,7 +29,7 @@ SpritesMaterial.prototype = Object.create(BABYLON.Material.prototype);
 
 // Properties
 SpritesMaterial.prototype.needAlphaBlending = function () {
-    return false;
+    return true;
 };
 
 SpritesMaterial.prototype.needAlphaTesting = function () {
@@ -136,6 +136,8 @@ SpritesMaterial.prototype.isReady = function (mesh) {
 
     if (this.needAlphaBlending()){
       defines.push('#define PREMUL_ALPHA');
+    }else{
+      defines.push('#define ALPHA_TESTING');
     }
 
     var join = defines.join("\n");

@@ -85,10 +85,21 @@ void main() {
     diffuseBaseColor = textureSprite2D(uDiffuseSampler);
   #endif
 
-  if (diffuseBaseColor.a<0.5)
-  {
-    discard;return;
-  }
+  #ifdef ALPHA_TESTING
+    if (diffuseBaseColor.a<0.5)
+    {
+      discard;return;
+    }
+    diffuseBaseColor*=diffuseBaseColor.a;
+    diffuseBaseColor.a = 1.;
+  #endif
+
+  #ifndef ALPHA_TESTING
+    if (diffuseBaseColor.a<0.1)
+    {
+      discard;return;
+    }
+  #endif
 
   //Compute the direction and the distance eye -> vertex
   vec3 eyeToVertexDir = uEyePosInWorld-vVertexPosInWorld;
@@ -124,7 +135,7 @@ void main() {
     #ifdef LIGHT0_TYPE_DIR
       lightVectorW = normalize(-uLightData0.xyz);
     #endif
-    diffuseColor += uLightDiffuse0 * computeDiffuseFactor(lightVectorW, normal, 1., 0.5);
+    diffuseColor += uLightDiffuse0 * computeDiffuseFactor(lightVectorW, normal, 0.7, 1./(1.+0.7));
   #endif
   #ifdef LIGHT1
     #ifdef LIGHT1_TYPE_POINT
@@ -133,7 +144,7 @@ void main() {
     #ifdef LIGHT1_TYPE_DIR
       lightVectorW = normalize(-uLightData1.xyz);
     #endif
-    diffuseColor += uLightDiffuse1 * computeDiffuseFactor(lightVectorW, normal, 1., 0.5);
+    diffuseColor += uLightDiffuse1 * computeDiffuseFactor(lightVectorW, normal, 0.7, 1./(1.+0.7));
   #endif
 
   color = vec4(diffuseColor, 1.) * diffuseBaseColor;

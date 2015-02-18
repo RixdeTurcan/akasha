@@ -8,14 +8,14 @@ function Test(number)
     this.addTest('Sky', 1);
     this.addTest('Cloud', 2);
     this.addTest('Ground', 3);
-    this.addTest('SpriteGen', 4);
+    this.addTest('SpriteGen', 4, '&dir=asset/pine/&name=Eucalyptus');
 
 
     this.startTest(number);
 }
 
-Test.prototype.addTest = function(name, num){
-    _$body.append('<a id="test'+num+'" type="submit" href="index.php?num='+num+'">'+name+'</a>');
+Test.prototype.addTest = function(name, num, add){
+    _$body.append('<a id="test'+num+'" type="submit" href="index.php?num='+num+(add?add:'')+'">'+name+'</a>');
     $('#test'+num).button();
 }
 
@@ -55,6 +55,7 @@ Test.prototype.startSpriteGenTest = function(){
 
         //Add control panel
         this.createSpriteGenTestRTTPrinter();
+        this.createSkyTestProfiler();
 
         //Render loop
         this.skytest.world.startRendering(function(){
@@ -81,8 +82,7 @@ Test.prototype.startSpriteGenTest = function(){
             }
 
         }.bind(this));
-
-        this.skytest.spriteGenerator = new SpriteGenerator();
+        this.skytest.spriteGenerator = new SpriteGenerator($('#dir').html(), $('#name').html(), 2048);
         this.skytest.spriteGenerator.load(loaderCallback, loadingCallback);
     }.bind(this));
 
@@ -152,7 +152,7 @@ Test.prototype.startGroundTest = function(){
     }.bind(this));
 
     loader.add(function(loaderCallback, loadingCallback){
-    /*
+
         //Add a wireframe grid ground
         this.skytest.groundWire = new BABYLON.Mesh.CreateGround("groundWire", 20000, 20000, 255,
                                                                 this.skytest.world.scene, false);
@@ -163,7 +163,7 @@ Test.prototype.startGroundTest = function(){
         //this.skytest.groundWire.material.alpha = 0.2;
         this.skytest.groundWire.material.diffuseColor = new BABYLON.Color3(0.5, 0.5, 0.5);
         this.skytest.groundWire.material.specularColor = new BABYLON.Color3(0.0, 0.0, 0.0);
-*/
+
 
         //Add the ground
         this.skytest.ground = new Ground(this.skytest.camera, this.skytest.sky.light);
@@ -295,6 +295,8 @@ Test.prototype.createSkyTestProfiler = function(){
 }
 
 Test.prototype.createSpriteGenTestRTTPrinter = function(){
+    this.RTTPrinterSizeX = 2048;
+    this.RTTPrinterSizeY = 2048;
     this.initRTTPrinter();
     this.initControlPanelSection(this.$rttPanel, this.$rttTitle, 'None');
     this.initControlPanelSection(this.$rttPanel, this.$rttTitle, 'ColorMap');
@@ -304,9 +306,9 @@ Test.prototype.createSpriteGenTestRTTPrinter = function(){
     var f = function(name){
         this.RTTBinded = true;
         if (name=="ColorMap"){
-            this.rttTextureToRender.material.texture = this.skytest.spriteGenerator.colorTex;
+            this.rttTextureToRender.material.texture = this.skytest.spriteGenerator.tex.colorMap;
         }else if (name=="NormalMap"){
-            this.rttTextureToRender.material.texture = this.skytest.spriteGenerator.normalTex;
+            this.rttTextureToRender.material.texture = this.skytest.spriteGenerator.tex.normalMap;
         }else{
             this.rttTextureToRender.material.texture = null;
             this.RTTBinded = false;
