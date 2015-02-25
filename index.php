@@ -7,7 +7,7 @@
     <script type="text/javascript" src="js/jquery.2.0.3/jquery.2.0.3.js"></script>
     <script type="text/javascript" src="js/jquery.2.0.3/jquery-ui-1.10.3.custom.js"></script>
     <script type="text/javascript" src="js/hand.1.3.0/Hand.js"></script>
-    <script type="text/javascript" src="js/Babylon.js-1.14/babylon.1.14-debug.js"></script>
+    <script type="text/javascript" src="js/babylon/babylon.2.0.debug.js"></script>
     <script type="text/javascript" src="js/plugin_babylon.js"></script>
 
     <script type="text/javascript" src="js/tools.js"></script>

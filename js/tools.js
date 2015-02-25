@@ -151,11 +151,11 @@ function createVertexPassthroughMesh(material, scene, isVisible, isVisibleScreen
     return mesh;
 }
 
-function createRenderTargetTexture(name, sampling, scene, configs,
+function createRenderTargetTexture(name, sampling, scene, configs, textureFloat,
                                    material, renderMaterial,
                                    mesh)
 {
-    var tex = new BABYLON.RenderTargetTexture(name, sampling, scene, configs);
+    var tex = new BABYLON.RenderTargetTexture(name, sampling, scene, configs, true, textureFloat?BABYLON.Engine.TEXTURETYPE_FLOAT:null);
     tex.material = material;
     tex.subMeshIdList = [];
     tex.meshList = [];
@@ -923,9 +923,9 @@ Grid.prototype.makeLodMeshes = function(name, relativePositions, relativeUvs, re
 
 
     var mesh = new BABYLON.Mesh(name, scene);
-    mesh.setVerticesData(BABYLON.VertexBuffer.PositionKind, meshesPositions, updatable);
-    mesh.setVerticesData(BABYLON.VertexBuffer.UVKind, meshesUvs, updatable);
-    mesh.setVerticesData(BABYLON.VertexBuffer.ColorKind, meshesUv2s, updatable);
+    mesh.setVerticesData(BABYLON.VertexBuffer.PositionKind, meshesPositions, updatable, 3);
+    mesh.setVerticesData(BABYLON.VertexBuffer.UVKind, meshesUvs, updatable, 2);
+    mesh.setVerticesData(BABYLON.VertexBuffer.ColorKind, meshesUv2s, updatable, 3);
     mesh.setIndices(meshesIndices);
     //console.log(Math.round(Math.sqrt(meshesPositions.length/3))+"^2");
 
@@ -935,8 +935,8 @@ Grid.prototype.makeLodMeshes = function(name, relativePositions, relativeUvs, re
 Grid.prototype.makeClippedMesh = function(name, scene, updatable)
 {
     var mesh = new BABYLON.Mesh(name, scene);
-    mesh.setVerticesData(BABYLON.VertexBuffer.PositionKind, this.clippedPositions, updatable);
-    mesh.setVerticesData(BABYLON.VertexBuffer.ColorKind, this.clippedUv2s, updatable);
+    mesh.setVerticesData(BABYLON.VertexBuffer.PositionKind, this.clippedPositions, updatable, 3);
+    mesh.setVerticesData(BABYLON.VertexBuffer.ColorKind, this.clippedUv2s, updatable, 3);
     mesh.setIndices(this.clippedIndices);
     //console.log(Math.round(Math.sqrt(this.clippedPositions.length/3))+"^2");
     return mesh;
@@ -959,9 +959,9 @@ function createImpostorTextures(dir, name, textureSize, nbCols, nbRows,
                                              scene,
                                              {
                                                  generateMipMaps: false,
-                                                 enableTextureFloat: false,
                                                  generateDepthBuffer: true
                                              },
+                                             true,
                                              null,
                                              renderMat.treeTextures,
                                              null);
@@ -971,9 +971,9 @@ function createImpostorTextures(dir, name, textureSize, nbCols, nbRows,
                                              scene,
                                              {
                                                  generateMipMaps: false,
-                                                 enableTextureFloat: false,
                                                  generateDepthBuffer: true
                                              },
+                                             true,
                                              null,
                                              renderMat.treeTextures,
                                              null);

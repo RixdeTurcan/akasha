@@ -19,8 +19,8 @@ Sky.prototype.load = function(loaderCallback, loadingCallback){
                                                                   _config.sky.cloud.heightSize,
                                                                   _config.world.scene,
                                                                   {generateMipMaps: false,
-                                                                      enableTextureFloat: true,
-                                                                      generateDepthBuffer: false});
+                                                                   generateDepthBuffer: false},
+                                                                  true, BABYLON.Engine.TEXTURETYPE_FLOAT);
         this.cloudHeightTexture.material = this.cloudHeightMaterial;
         this.cloudHeightTexture.material.noiseTexture = this.noiseTexture;
         this.cloudHeightMesh = createVertexPassthroughMesh(this.cloudHeightTexture.material,
@@ -41,8 +41,8 @@ Sky.prototype.load = function(loaderCallback, loadingCallback){
                                                                    _config.sky.cloud.heightSize,
                                                                    _config.world.scene,
                                                                    {generateMipMaps: false,
-                                                                       enableTextureFloat: true,
-                                                                       generateDepthBuffer: false});
+                                                                    generateDepthBuffer: false},
+                                                                   true, BABYLON.Engine.TEXTURETYPE_FLOAT);
         this.cloudHeightTexture2.material = this.cloudHeightMaterial2;
         this.cloudHeightTexture2.material.noiseTexture = this.noiseTexture;
         this.cloudHeightMesh2 = createVertexPassthroughMesh(this.cloudHeightTexture2.material,
@@ -64,8 +64,8 @@ Sky.prototype.load = function(loaderCallback, loadingCallback){
                                                                    _config.sky.cloud.heightSize,
                                                                    _config.world.scene,
                                                                    {generateMipMaps: false,
-                                                                       enableTextureFloat: true,
-                                                                       generateDepthBuffer: false});
+                                                                    generateDepthBuffer: false},
+                                                                  true, BABYLON.Engine.TEXTURETYPE_FLOAT);
         this.cloudHeightTexture3.material = this.cloudHeightMaterial3;
         this.cloudHeightTexture3.material.noiseTexture = this.noiseTexture;
         this.cloudHeightMesh3 = createVertexPassthroughMesh(this.cloudHeightTexture3.material,
@@ -92,8 +92,8 @@ Sky.prototype.load = function(loaderCallback, loadingCallback){
                                                                     _config.sky.cloud.depthSize,
                                                                     _config.world.scene,
                                                                     {generateMipMaps: false,
-                                                                        enableTextureFloat: true,
-                                                                        generateDepthBuffer: false});
+                                                                     generateDepthBuffer: false},
+                                                                    true, BABYLON.Engine.TEXTURETYPE_FLOAT);
         this.cloudSunDepthTexture.material = this.cloudSunDepthMaterial;
         this.cloudSunDepthTexture.material.cloudHeightTexture = this.cloudHeightTexture3;
         this.cloudSunDepthMesh = createVertexPassthroughMesh(this.cloudSunDepthTexture.material,
@@ -114,8 +114,8 @@ Sky.prototype.load = function(loaderCallback, loadingCallback){
                                                                      _config.sky.cloud.depthSize,
                                                                      _config.world.scene,
                                                                      {generateMipMaps: false,
-                                                                         enableTextureFloat: true,
-                                                                         generateDepthBuffer: false});
+                                                                      generateDepthBuffer: false},
+                                                                     true, BABYLON.Engine.TEXTURETYPE_FLOAT);
         this.cloudSunDepthTexture2.material = this.cloudSunDepthMaterial2;
         this.cloudSunDepthTexture2.material.cloudHeightTexture = this.cloudHeightTexture3;
         this.cloudSunDepthMesh2 = createVertexPassthroughMesh(this.cloudSunDepthTexture2.material,
@@ -137,8 +137,8 @@ Sky.prototype.load = function(loaderCallback, loadingCallback){
                                                                      _config.sky.cloud.depthSize,
                                                                      _config.world.scene,
                                                                      {generateMipMaps: false,
-                                                                         enableTextureFloat: true,
-                                                                         generateDepthBuffer: false});
+                                                                      generateDepthBuffer: false},
+                                                                     true, BABYLON.Engine.TEXTURETYPE_FLOAT);
         this.cloudSunDepthTexture3.material = this.cloudSunDepthMaterial3;
         this.cloudSunDepthTexture3.material.cloudHeightTexture = this.cloudHeightTexture3;
         this.cloudSunDepthMesh3 = createVertexPassthroughMesh(this.cloudSunDepthTexture3.material,
@@ -164,8 +164,8 @@ Sky.prototype.load = function(loaderCallback, loadingCallback){
                                                          _config.sky.params.textureSize,
                                                          _config.world.scene,
                                                          {generateMipMaps: false,
-                                                          enableTextureFloat: true,
-                                                          generateDepthBuffer: false});
+                                                          generateDepthBuffer: false},
+                                                         true, BABYLON.Engine.TEXTURETYPE_FLOAT);
     this.renderTexture.material = this.renderMaterial;
     this.renderTexture.material.cloudTexture = this.cloudSunDepthTexture3;
     this.renderMesh = createVertexPassthroughMesh(this.renderTexture.material,

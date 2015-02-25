@@ -229,9 +229,9 @@ Ground.prototype.load = function(loaderCallback, loadingCallback){
                                                          _config.world.scene,
                                                          {
                                                              generateMipMaps: false,
-                                                             enableTextureFloat: true,
                                                              generateDepthBuffer: false
                                                          },
+                                                         true,
                                                          new GroundHeightMaterial('groundHeightMaterial',
                                                                                   1024, this, this.grid,
                                                                                   _config.world.scene),
@@ -246,9 +246,9 @@ Ground.prototype.load = function(loaderCallback, loadingCallback){
                                                          _config.world.scene,
                                                          {
                                                              generateMipMaps: false,
-                                                             enableTextureFloat: true,
                                                              generateDepthBuffer: false
                                                          },
+                                                         true,
                                                          new SpriteHeightMaterial('spriteHeightMaterial',
                                                                                   128, this, this.treeGrid,
                                                                                   _config.world.scene),
@@ -291,9 +291,9 @@ Ground.prototype.load = function(loaderCallback, loadingCallback){
                                                          _config.world.scene,
                                                          {
                                                              generateMipMaps: false,
-                                                             enableTextureFloat: true,
                                                              generateDepthBuffer: false
                                                          },
+                                                         true,
                                                          new GroundHeightMaterial('groundShadowHeightMaterial',
                                                                                   this.material,
                                                                                   _config.world.scene),
@@ -309,9 +309,9 @@ Ground.prototype.load = function(loaderCallback, loadingCallback){
                                                    _config.world.scene,
                                                    {
                                                        generateMipMaps: false,
-                                                       enableTextureFloat: true,
                                                        generateDepthBuffer: true
                                                    },
+                                                   true,
                                                    new ShadowGroundMaterial('groundShadowMaterial',
                                                                             _config.world.scene,
                                                                             this, this.light),
