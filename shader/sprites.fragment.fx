@@ -85,6 +85,7 @@ void main() {
     diffuseBaseColor = textureSprite2D(uDiffuseSampler);
   #endif
 
+
   #ifdef ALPHA_TESTING
     if (diffuseBaseColor.a<0.5)
     {
@@ -125,8 +126,10 @@ void main() {
       normal = tbn * perturbNormal;
   #endif
 
+
   //Compute the light color
-  vec3 diffuseColor = vec3(0.0, 0.0, 0.0);
+  vec3 diffuseColor = vec3(0., 0., 0.);
+  vec3 specularColor = vec3(0., 0., 0.);
   vec3 lightVectorW;
   #ifdef LIGHT0
     #ifdef LIGHT0_TYPE_POINT
@@ -136,6 +139,7 @@ void main() {
       lightVectorW = normalize(-uLightData0.xyz);
     #endif
     diffuseColor += uLightDiffuse0 * computeDiffuseFactor(lightVectorW, normal, 0.7, 1./(1.+0.7));
+    specularColor += uLightDiffuse0 * computeSpecularFactor(lightVectorW, eyeToVertexDir, normal, 4.);
   #endif
   #ifdef LIGHT1
     #ifdef LIGHT1_TYPE_POINT
@@ -145,9 +149,13 @@ void main() {
       lightVectorW = normalize(-uLightData1.xyz);
     #endif
     diffuseColor += uLightDiffuse1 * computeDiffuseFactor(lightVectorW, normal, 0.7, 1./(1.+0.7));
+    specularColor += uLightDiffuse1 * computeSpecularFactor(lightVectorW, eyeToVertexDir, normal, 4.);
   #endif
 
-  color = vec4(diffuseColor, 1.) * diffuseBaseColor;
+  float specularFactor = 0.4;
+  float diffuseFactor = 0.6;
+
+  color = vec4(diffuseColor * diffuseFactor + specularColor * specularFactor, 1.) * diffuseBaseColor;
 
 
 
