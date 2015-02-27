@@ -68,7 +68,7 @@ void main(void)
 
     angleFactor = mix(angleFactor, floor(angleFactor+0.5), smoothstep(3500., 4000., eyeToVertexDist));
 
-    //Fill some varying
+    //Fill some varyingq
     vAngleFactor = angleFactor ;
     vUv1 = vec2(((uv.x*2.-1.)/cos(angleFactor*angleStep))*0.5+0.5, uv.y);
     vUv2 = vec2(((uv.x*2.-1.)/cos((1.-angleFactor)*angleStep))*0.5+0.5, uv.y);

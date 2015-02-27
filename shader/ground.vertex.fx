@@ -39,6 +39,7 @@ void main(void)
   #endif
   vNormal = normalize(normal);
   vVertexPosInWorld = pos;
+
   vDiffuseHeightOffset = groundTex.a;
 
   //Compute the screen position

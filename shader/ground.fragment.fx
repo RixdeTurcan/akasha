@@ -182,6 +182,85 @@ varying float vDiffuseHeightOffset;
 
 #endif
 
+float uTreeUnitSize = 320.;
+uniform vec3 uSunDir;
+float uTreeLength = 250.;
+
+float uTreeNbHalfUnit = 60.;
+float uTreeNbUnit = uTreeNbHalfUnit*2.+1.;
+
+uniform sampler2D uTreeHeightSampler;
+float uTreeHeightSamplerSize = 128.;
+
+uniform sampler2D uTreeTextureSampler;
+float uNbRows = 8.;
+float uNbCols = 8.;
+
+
+vec4 getTreePos(float i, float j)
+{
+  vec2 uv = vec2(floor(uTreeNbHalfUnit+i+1.5),
+                 floor(uTreeNbHalfUnit+j+1.5));
+
+  vec4 tex = texture2D(uTreeHeightSampler, uv/uTreeHeightSamplerSize);
+  return tex;
+}
+
+float computeTreeShadow()
+{
+  float shadow = 1.;
+
+  vec3 e = vVertexPosInWorld;
+  vec3 w = normalize(uSunDir);
+  vec2 n = normalize(uSunDir.xz);
+  vec2 t = vec2(-n.y, n.x);
+
+  vec3 wodn = w/dot(n, w.xz);
+  vec2 pInit = (e.xz+mod(uPlayerPos.xz, uTreeUnitSize))/uTreeUnitSize;
+
+  float angleStep = 6.28/(uNbRows*uNbCols);
+  float angle = atan2(t.y, t.x);
+
+  for(int i=-1; i<=1; i++){
+    for (int j=-1; j<=1; j++){
+
+       vec4 p = getTreePos(float(i)+pInit.x, float(j)+pInit.y);
+
+       vec3 diffuseFactors = computeDiffuseFactors(p.y);
+       p.y -= 30.;
+
+       if (diffuseFactors.y>0.4)
+       {
+         vec3 x = e+wodn*dot(n, p.xz-e.xz);
+
+         float u = (dot(x.xz-p.xz, t)/uTreeLength)*0.5+0.5;
+         float v = (x.y-p.y)/(uTreeLength*2.);
+
+         if (v>=0. && v<0.95 && u>=0. && u<0.95)
+         {
+           float angleI = angle + p.a;
+           angleI = mod(angleI, 6.28);
+           float id = angle/angleStep;
+           float row = floor(mod(id, uNbRows));
+           float col = floor(id/uNbRows);
+
+           vec2 uv = (vec2(u, v)+vec2(row, col))/vec2(uNbRows, uNbCols);
+
+
+           vec4 tex = texture2D(uTreeTextureSampler, uv);
+           shadow = min(shadow, 1.-0.3*tex.a);
+
+         }
+       }
+    }
+  }
+
+  return shadow;
+}
+
+
+
+
 void main(void) {
   vec4 color = vec4(0., 0., 0., 1.);
 
@@ -343,6 +422,8 @@ void main(void) {
   #ifdef GRASS
     diffuseBaseColor = computeGrassColor(diffuseBaseColor, diffuseFactors.y*max((1.-diffuseFarFactors.y)*1.5, 0.));
   #endif
+
+  diffuseColor *= computeTreeShadow();
 
   color.rgb = diffuseColor * diffuseBaseColor;
 

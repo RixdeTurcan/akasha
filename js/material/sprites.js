@@ -20,7 +20,7 @@ function SpritesMaterial(name, scene, nbCols, nbRows) {
     this.nbRows = nbRows;
 
 
-    this.backFaceCulling = false;
+    this.backFaceCulling = true;
     this._scene = scene;
     scene.materials.push(this);
 };

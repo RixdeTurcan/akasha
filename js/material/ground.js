@@ -29,7 +29,7 @@ function GroundMaterial(name, scene, ground) {
                               './shader/texture_noise.include.fx',
                               './shader/ground.include.fx']);
 
-    this.backFaceCulling = false;
+    this.backFaceCulling = true;
     this._scene = scene;
     scene.materials.push(this);
 };
@@ -230,10 +230,11 @@ GroundMaterial.prototype.isReady = function (mesh) {
                                            ['uViewProjection', 'uEyePosInWorld',
                                            'uFogInfos', 'uVerticalShift',
                                            'uTangentScreenDist', 'uPlayerPos',
+                                           'uSunDir',
                                            'uLightData0', 'uLightDiffuse0',
                                            'uLightData1', 'uLightDiffuse1'],
-                                           ['uNoiseSampler', 'uGroundHeightSampler',
-                                            'uSkySampler', 'uGrassSampler',
+                                           ['uNoiseSampler', 'uGroundHeightSampler', 'uTreeHeightSampler',
+                                            'uSkySampler', 'uGrassSampler', 'uTreeTextureSampler',
                                             'uDiffuse1Sampler', 'uDiffuse2Sampler', 'uDiffuse3Sampler',
                                             'uDiffuseFar1Sampler', 'uDiffuseFar2Sampler', 'uDiffuseFar3Sampler',
                                             'uDiffuseNormal1Sampler', 'uDiffuseNormal2Sampler', 'uDiffuseNormal3Sampler'],
@@ -256,6 +257,10 @@ GroundMaterial.prototype.unbind = function ()
     if (this.groundHeightTexture && this.groundHeightTexture.isRenderTarget) {
         this._effect.setTexture("uGroundHeightSampler", null);
     }
+
+    if (this.spriteHeightTexture && this.spriteHeightTexture.isRenderTarget) {
+        this._effect.setTexture("uTreeHeightSampler", null);
+    }
 };
 
 GroundMaterial.prototype.bind = function (world, mesh) {
@@ -270,10 +275,21 @@ GroundMaterial.prototype.bind = function (world, mesh) {
 
     this._effect.setVector3('uPlayerPos', _config.player.position);
 
+    this._effect.setVector3('uSunDir', _config.sky.params.sunDir);
 
     // noise
     if (this.noiseTexture) {
         this._effect.setTexture("uNoiseSampler", this.noiseTexture);
+    }
+
+    // tree height
+    if (this.spriteHeightTexture) {
+        this._effect.setTexture("uTreeHeightSampler", this.spriteHeightTexture);
+    }
+
+    // tree texture
+    if (this.treeTexture) {
+        this._effect.setTexture("uTreeTextureSampler", this.treeTexture);
     }
 
     // grass

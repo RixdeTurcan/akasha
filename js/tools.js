@@ -644,10 +644,10 @@ Grid.prototype.f4 = function(a0, a1, b0, b1, invert)
 Grid.prototype.f4s = function(a0, b0, b1, b2, invert)
 {
     if (!invert){
-        this.indices.push(a0, b0, b2);
+        this.indices.push(a0, b2, b0);
         this.indices.push(b1, b0, b2);
     }else{
-        this.indices.push(a0, b0, b1);
+        this.indices.push(a0, b1, b0);
         this.indices.push(b1, a0, b2);
     }
 }

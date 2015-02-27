@@ -82,7 +82,7 @@ function Player_Config(){
 
 function Sky_Config(){
     this.params = {
-        sunDir: new BABYLON.Vector3(-1., 0.3, 0.),
+        sunDir: new BABYLON.Vector3(1., 1., 0.2),
         sunLight: new BABYLON.Vector3(1.0, 1.0, 1.0),
         sunColor: new BABYLON.Vector3(1.0, 1.0, 1.0),
         earthRadius: 6400.e3,

@@ -105,7 +105,7 @@ Ground.prototype.load = function(loaderCallback, loadingCallback){
                    0.98, 0,
                    0.98, 0.98];
     var spriteIndices = [0, 1, 2,
-                         2, 3, 1];
+                         2, 1, 3];
 
 
     var treeFunc = function(i){
@@ -177,6 +177,8 @@ Ground.prototype.load = function(loaderCallback, loadingCallback){
 
     this.treeMaterial.diffuseTexture =  new BABYLON.Texture("asset/pine/impostor_color.png", _config.world.scene, false, false, BABYLON.Texture.TRILINEAR_SAMPLINGMODE, loadingFunction);
     this.treeMaterial.bumpTexture =  new BABYLON.Texture("asset/pine/impostor_normal.png", _config.world.scene, false, false, BABYLON.Texture.TRILINEAR_SAMPLINGMODE, loadingFunction);
+    this.material.treeTexture = new BABYLON.Texture("asset/pine/impostor_color.png", _config.world.scene, true, false, BABYLON.Texture.TRILINEAR_SAMPLINGMODE, loadingFunction);
+
 
     //Noise texture
     this.noiseTexture = new BABYLON.Texture("asset/noise.png", _config.world.scene, true, false, BABYLON.Texture.TRILINEAR_SAMPLINGMODE, loadingFunction);
