@@ -17,7 +17,7 @@ mat4 uIsland1Data1 = mat4(
 //shapeNoiseA1, shapeNoiseA2, shapeNoiseA3, shapeNoiseAg,
 //ShapeNoisePeriodX, shapeNoisePeriodY, noisePeriodX, noisePeriodY
 mat4 uIsland1Data2 = mat4(
-    0.4, 0.25, 0.15, 0.,
+    0.4, 0., 0., 0.,
     0., 0., 0., 0.,
     0.7, 0.2, 0.1, 5000.,
     0.0002, 0.0002, 0.001, 0.001

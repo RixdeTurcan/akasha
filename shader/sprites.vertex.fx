@@ -49,7 +49,7 @@ void main(void)
 
     //Position of the sprite corners
     pos.xz += tangent.xz*(uv.x-0.5)*500.;
-    pos.y += uv.y*500. - 30.;
+    pos.y += uv.y*500.;// - 10.;
 
     //Compute the orientation
     float angle = groundTex.a;

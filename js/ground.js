@@ -177,7 +177,7 @@ Ground.prototype.load = function(loaderCallback, loadingCallback){
 
     this.treeMaterial.diffuseTexture =  new BABYLON.Texture("asset/pine/impostor_color.png", _config.world.scene, false, false, BABYLON.Texture.TRILINEAR_SAMPLINGMODE, loadingFunction);
     this.treeMaterial.bumpTexture =  new BABYLON.Texture("asset/pine/impostor_normal.png", _config.world.scene, false, false, BABYLON.Texture.TRILINEAR_SAMPLINGMODE, loadingFunction);
-    this.material.treeTexture = new BABYLON.Texture("asset/pine/impostor_color.png", _config.world.scene, true, false, BABYLON.Texture.TRILINEAR_SAMPLINGMODE, loadingFunction);
+    this.material.treeTexture = new BABYLON.Texture("asset/pine/impostor_color_low.png", _config.world.scene, true, false, BABYLON.Texture.TRILINEAR_SAMPLINGMODE, loadingFunction);
 
 
     //Noise texture

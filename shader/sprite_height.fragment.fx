@@ -18,8 +18,8 @@ void main(void)
 
   vec2 worldPos = pos+uPlayerPos.xz;
 
-  pos.x += 0.*60.*fastRand(0.0001*worldPos);
-  pos.y += 0.*60.*fastRand(0.0001*(worldPos+1985.));
+  pos.x += 60.*fastRand(0.0001*worldPos);
+  pos.y += 60.*fastRand(0.0001*(worldPos+1985.));
 
   //Compute the height of the sprite
   vec3 pos0 = computeVertexPos(pos, vec2(0., 0.), uPlayerPos.xz);

@@ -210,10 +210,20 @@ float computeTreeShadow()
 {
   float shadow = 1.;
 
+/*
+  vec3 eyeToVertexDir = uEyePosInWorld-vVertexPosInWorld;
+  eyeToVertexDir.y=0.;
+  eyeToVertexDir = normalize(eyeToVertexDir);
+*/
   vec3 e = vVertexPosInWorld;
   vec3 w = normalize(uSunDir);
   vec2 n = normalize(uSunDir.xz);
   vec2 t = vec2(-n.y, n.x);
+
+  float costheta = dot(uSunDir, vec3(0., 1., 0.));
+  float directionnalShadowFactor = 0.5+0.5*smoothstep(1., 0.8, costheta);
+  float ambiantShadowFactor = smoothstep(0.5, 1., costheta);
+  float occlusionLength = mix(uTreeLength/3., uTreeLength/1.3, ambiantShadowFactor);
 
   vec3 wodn = w/dot(n, w.xz);
   vec2 pInit = (e.xz+mod(uPlayerPos.xz, uTreeUnitSize))/uTreeUnitSize;
@@ -227,30 +237,34 @@ float computeTreeShadow()
        vec4 p = getTreePos(float(i)+pInit.x, float(j)+pInit.y);
 
        vec3 diffuseFactors = computeDiffuseFactors(p.y);
-       p.y -= 30.;
+       //p.y -= 10.;
 
        if (diffuseFactors.y>0.4)
        {
-         vec3 x = e+wodn*dot(n, p.xz-e.xz);
-
-         float u = (dot(x.xz-p.xz, t)/uTreeLength)*0.5+0.5;
-         float v = (x.y-p.y)/(uTreeLength*2.);
-
-         if (v>=0. && v<0.95 && u>=0. && u<0.95)
+         if (dot(p.xyz-e.xyz, w)>0.)
          {
-           float angleI = angle + p.a;
-           angleI = mod(angleI, 6.28);
-           float id = angle/angleStep;
-           float row = floor(mod(id, uNbRows));
-           float col = floor(id/uNbRows);
+           vec3 x = e+wodn*dot(n, p.xz-e.xz);
 
-           vec2 uv = (vec2(u, v)+vec2(row, col))/vec2(uNbRows, uNbCols);
+           float u = (dot(x.xz-p.xz, t)/uTreeLength)*0.5+0.5;
+           float v = (x.y-p.y)/(uTreeLength*2.);
+
+           if (v>=0. && v<0.95 && u>=0. && u<0.95)
+           {
+             float angleI = angle + p.a;
+             angleI = mod(angleI, 6.28);
+             float id = angle/angleStep;
+             float row = floor(mod(id, uNbRows));
+             float col = floor(id/uNbRows);
+
+             vec2 uv = (vec2(u, v)+vec2(row, col))/vec2(uNbRows, uNbCols);
 
 
-           vec4 tex = texture2D(uTreeTextureSampler, uv);
-           shadow = min(shadow, 1.-0.3*tex.a);
+             vec4 tex = texture2D(uTreeTextureSampler, uv);
+             shadow = min(shadow, 1.-0.3*tex.a*tex.a*directionnalShadowFactor);
 
+           }
          }
+         shadow = min(shadow, 1.-0.3*smoothstep(occlusionLength, occlusionLength*0.5, length(p.xz-e.xz)));
        }
     }
   }
