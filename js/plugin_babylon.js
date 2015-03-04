@@ -319,6 +319,11 @@ BABYLON.Vector2.prototype.mod = function (mod) {
                                this.y % mod);
 };
 
+BABYLON.Vector2.cross = function(vec1, vec2)
+{
+  return vec1.x*vec2.y-vec1.y*vec2.x;
+}
+
 BABYLON.Engine.prototype.createEffect = function (baseName, attributesNames, uniformsNames, samplers, defines, optionalDefines, onCompiled, onError) {
     var vertex = baseName.vertexElement || (baseName.vertex?baseName.vertex.tagName:null) || baseName.vertex || baseName; //++
     var fragment = baseName.fragmentElement || (baseName.fragment?baseName.fragment.tagName:null) || baseName.fragment || baseName; //++

@@ -1,11 +1,11 @@
 function Player(camera){
     assert(function(){return camera instanceof Camera;}, 'camera is not a Camera');
 
-    this.camera = camera;/*
+    this.camera = camera;
     this.camera.camera.keysUp = [];
     this.camera.camera.keysDown = [];
     this.camera.camera.keysLeft = [];
-    this.camera.camera.keysRight = [];*/
+    this.camera.camera.keysRight = [];
 
     this.keyUpPressed = false;
     this.keyDownPressed = false;

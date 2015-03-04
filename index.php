@@ -13,6 +13,7 @@
     <script type="text/javascript" src="js/tools.js"></script>
     <script type="text/javascript" src="js/shader.js"></script>
     <script type="text/javascript" src="js/global.js"></script>
+    <script type="text/javascript" src="js/tools/graham.js"></script>
 
     <script type="text/javascript" src="js/material/reflection_ground.js"></script>
     <script type="text/javascript" src="js/material/foam_shore_ground.js"></script>

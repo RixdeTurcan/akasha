@@ -16,9 +16,30 @@ function warning(text){
 
 Number.prototype.mod = function(n){ return ((this%n)+n)%n; }
 
-function sign(x) { return x > 0 ? 1 : -1; }
+function sign(x) {
+    return x > 0 ? 1 : -1;
+}
 
-function log(x, i) { return Math.log(x) / Math.log(i); }
+function log(x, i) {
+    return Math.log(x) / Math.log(i);
+}
+
+var clamp = function(num, min, max) {
+    return num < min ? min : (num > max ? max : num);
+};
+
+function smoothstep(edge0, edge1, x)
+{
+    // Scale, bias and saturate x to 0..1 range
+    var t = clamp((x - edge0)/(edge1 - edge0), 0.0, 1.0);
+    // Evaluate polynomial
+    return t*t*(3 - 2*t);
+}
+
+function mix(x, y, a)
+{
+  return x*(1.-a)+y*a;
+}
 
 function onReady(elem, func, refreshTime)
 {

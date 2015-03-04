@@ -14,6 +14,8 @@ function GroundMaterial(name, scene, ground) {
     this.renderImpostorTex = false;
     this.impostorTexRendered = false;
 
+    this.nbTreeTestMax = 18;
+
     this.wireframe = false;
     _$body.keypress(function(e){
         this.wireframe = e.which==119?!this.wireframe:this.wireframe;
@@ -23,6 +25,7 @@ function GroundMaterial(name, scene, ground) {
     this.shader = new Shader('./shader/ground.vertex.fx',
                              './shader/ground.fragment.fx',
                              ['./shader/texture_noise.include.fx',
+                              './shader/sphere_grid.include.fx',
                               './shader/ground.include.fx'],
                              ['./shader/phong.include.fx',
                               './shader/sphere_grid.include.fx',
@@ -219,6 +222,8 @@ GroundMaterial.prototype.isReady = function (mesh) {
         }
     }
 
+    defines.push("#define NB_TREE_TEST_MAX "+ this.nbTreeTestMax);
+
     var join = defines.join("\n");
     if (this._cachedDefines != join && this.shader.isReady)
     {
@@ -230,7 +235,7 @@ GroundMaterial.prototype.isReady = function (mesh) {
                                            ['uViewProjection', 'uEyePosInWorld',
                                            'uFogInfos', 'uVerticalShift',
                                            'uTangentScreenDist', 'uPlayerPos',
-                                           'uSunDir',
+                                           'uSunDir', 'uTreeToTestX', 'uTreeToTestY', 'uTreeToTest',
                                            'uLightData0', 'uLightDiffuse0',
                                            'uLightData1', 'uLightDiffuse1'],
                                            ['uNoiseSampler', 'uGroundHeightSampler', 'uTreeHeightSampler',
@@ -263,6 +268,136 @@ GroundMaterial.prototype.unbind = function ()
     }
 };
 
+GroundMaterial.prototype.computeTreeToTest = function()
+{
+  var result = {x:[], y:[], id:[]};
+
+  var uTreeLength = 250.;
+  var uTreeUnitSize = 320.;
+
+  //Floor square around 0
+  var posInit = [new BABYLON.Vector2(-0.5, -0.5).scale(uTreeUnitSize),
+                 new BABYLON.Vector2(-0.5, 0.5).scale(uTreeUnitSize),
+                 new BABYLON.Vector2(0.5, -0.5).scale(uTreeUnitSize),
+                 new BABYLON.Vector2(0.5, 0.5).scale(uTreeUnitSize)];
+
+
+  //Compute the occlusion radius
+  var costheta =  _config.sky.params.sunDir.y;
+  var ambiantShadowFactor = smoothstep(0.5, 1., costheta);
+  var occlusionLength = mix(uTreeLength/3., uTreeLength/2.1, ambiantShadowFactor);
+
+  //Compute the directionnal shadow rectangle
+  var h = _config.sky.params.sunDir.y;
+  var n = new BABYLON.Vector2(_config.sky.params.sunDir.x, _config.sky.params.sunDir.z);
+  n.normalize();
+  var t = new BABYLON.Vector2(-n.y, n.x);
+  var shadowLength = 2.*uTreeLength*Math.sqrt(1.-h*h)/h;
+
+  var posShadow = [t.scale(uTreeLength),
+                   t.scale(-uTreeLength),
+                   n.scale(shadowLength).add(t.scale(uTreeLength)),
+                   n.scale(shadowLength).add(t.scale(-uTreeLength))];
+
+
+  //Compute the convex hull points
+  var convexHull = [];
+  for(var i=0; i<posInit.length; i++){
+    for(var j=0; j<posShadow.length; j++){
+      convexHull.push(posInit[i].add(posShadow[j]));
+    }
+    convexHull.push(posInit[i].add(new BABYLON.Vector2(occlusionLength, occlusionLength)));
+    convexHull.push(posInit[i].add(new BABYLON.Vector2(-occlusionLength, occlusionLength)));
+    convexHull.push(posInit[i].add(new BABYLON.Vector2(occlusionLength, -occlusionLength)));
+    convexHull.push(posInit[i].add(new BABYLON.Vector2(-occlusionLength, -occlusionLength)));
+
+  }
+
+  //Order the convex hull
+/*
+  if (_test==0){
+          $('.p').remove();
+          _$body.append('<div id="-1" class="p"></div>');
+          $('#-1').css({position:'absolute',
+                       top: (500.)+'px',
+                       left: (500.)+'px',
+                       width: '10px',
+                       height: '10px',
+                       background: 'white'});
+      for(var i=0; i<convexHull.length; i++){
+          _$body.append('<div id="'+i+'" class="p"></div>');
+          $('#'+i).css({position:'absolute',
+                       top: (convexHull[i].y/3.+500.)+'px',
+                       left: (convexHull[i].x/3.+500.)+'px',
+                       width: '10px',
+                       height: '10px',
+                       background: 'red',
+                       zIndex: '10'});
+      }
+  }*/
+
+  var convexHull2 = getEnveloppeConvexe(convexHull, true);
+  convexHull2.push(convexHull2[0]);
+/*
+  if (_test==0){
+      for(var i=0; i<convexHull2.length; i++){
+          _$body.append('<div id="'+i+'j" class="p"></div>');
+          $('#'+i+'j').css({position:'absolute',
+                       top: (convexHull2[i].y/3.+500.-3)+'px',
+                       left: (convexHull2[i].x/3.+500.-3)+'px',
+                       width: '16px',
+                       height: '16px',
+                       background: 'blue',
+                       zIndex: '5'});
+      }
+  }
+*/
+  //Get the trees to test
+  for(var i=-3; i<=3; i++){
+    for (var j=-3; j<=3; j++){
+      var p = new BABYLON.Vector2(i*uTreeUnitSize, j*uTreeUnitSize);
+      var isInConvexHull = true;
+      for (var k = 0; k<convexHull2.length-1; k++){
+        var v1 = p.subtract(convexHull2[k]);
+        var v2 = convexHull2[k+1].subtract(convexHull2[k]);
+
+        if (BABYLON.Vector2.cross(v2, v1)<0.){
+          isInConvexHull = false;
+          break;
+        }
+      }
+      if (isInConvexHull){
+        result.x.push(i);
+        result.y.push(j);
+        result.id.push(1);
+      }
+    }
+  }
+  //console.log(result.x.length);
+/*
+  if (_test==0){
+    _test = 1;
+      for(var i=0; i<result.x.length; i++){
+          _$body.append('<div id="'+i+'jj" class="p"></div>');
+          $('#'+i+'jj').css({position:'absolute',
+                       top: (result.y[i]*uTreeUnitSize/3.+500.-6)+'px',
+                       left: (result.x[i]*uTreeUnitSize/3.+500.-6)+'px',
+                       width: '21px',
+                       height: '21px',
+                       background: 'green',
+                       zIndex: '3'});
+      }
+  }
+*/
+  //Fill the array
+  for(var i=0; i<this.nbTreeTestMax-result.x.length; i++){
+    result.x.push(0);
+    result.y.push(0);
+    result.id.push(0);
+  }
+  return result;
+}
+
 GroundMaterial.prototype.bind = function (world, mesh) {
 
     var eyePos = this._scene.activeCamera.position;
@@ -276,6 +411,12 @@ GroundMaterial.prototype.bind = function (world, mesh) {
     this._effect.setVector3('uPlayerPos', _config.player.position);
 
     this._effect.setVector3('uSunDir', _config.sky.params.sunDir);
+
+    var treeToTest = this.computeTreeToTest();
+
+    this._effect.setFloats('uTreeToTestX', treeToTest.x);
+    this._effect.setFloats('uTreeToTestY', treeToTest.y);
+    this._effect.setFloats('uTreeToTest', treeToTest.id);
 
     // noise
     if (this.noiseTexture) {
