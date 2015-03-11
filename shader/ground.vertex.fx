@@ -21,6 +21,7 @@ varying float vDiffuseHeightOffset;
 float uTreeUnitSize = 320.;
 uniform vec3 uSunDir;
 float uTreeLength = 250.;
+float uInvTreeLength = 1./uTreeLength;
 
 float uTreeNbHalfUnit = 60.;
 float uTreeNbUnit = uTreeNbHalfUnit*2.+1.;
@@ -31,6 +32,8 @@ float uTreeHeightSamplerSize = 128.;
 uniform sampler2D uTreeTextureSampler;
 float uNbRows = 8.;
 float uNbCols = 8.;
+float uInvNbRows = 1./uNbRows;
+float uInvNbCols = 1./uNbCols;
 
 uniform float uTreeToTestX[NB_TREE_TEST_MAX];
 uniform float uTreeToTestY[NB_TREE_TEST_MAX];
@@ -39,11 +42,10 @@ uniform float uTreeToTest[NB_TREE_TEST_MAX];
 
 vec4 getTreePos(float i, float j)
 {
-  vec2 uv = vec2(floor(uTreeNbHalfUnit+i+1.5),
-                 floor(uTreeNbHalfUnit+j+1.5))/uTreeHeightSamplerSize;
+  vec2 uv = vec2(floor(uTreeNbHalfUnit+i+1.),
+                 floor(uTreeNbHalfUnit+j+1.))/uTreeHeightSamplerSize;
 
-  vec4 tex = texture2D(uTreeHeightSampler, uv);
-  return tex;
+  return texture2D(uTreeHeightSampler, uv);
 }
 
 
@@ -55,18 +57,21 @@ float test(float uTreeToTest, float uTreeToTestX, float uTreeToTestY, float shad
 
        vec4 p = getTreePos(uTreeToTestX+pInit.x, uTreeToTestY+pInit.y);
 
+       vec3 pe = p.xyz-e.xyz;
+       float distXZPe = length(pe.xz);
+
        vec3 diffuseFactors = computeDiffuseFactors(p.y);
        //p.y -= 10.;
 
        if (diffuseFactors.y>0.4)
        {
-         if (dot(p.xyz-e.xyz, w)>0.)
+         if (dot(pe, w)>0.)
          {
-           vec3 dx = wodn*dot(n, p.xz-e.xz);
+           vec3 dx = wodn*dot(n, pe.xz);
            vec3 x = e+dx;
 
-           float u = (dot(x.xz-p.xz, t)/uTreeLength)*0.5+0.5;
-           float v = (x.y-p.y)/(uTreeLength*2.);
+           float u = (dot(pe.xz, t)*uInvTreeLength)*0.5+0.5;
+           float v = (x.y-p.y)*(uInvTreeLength*0.5);
 
            if (v>=0. && v<0.95 && u>=0. && u<0.95)
            {
@@ -74,20 +79,20 @@ float test(float uTreeToTest, float uTreeToTestX, float uTreeToTestY, float shad
              angleI = mod(angleI, 6.28);
              float id = angle/angleStep;
              float row = floor(mod(id, uNbRows));
-             float col = floor(id/uNbRows);
+             float col = floor(id*uInvNbRows);
 
-             vec2 uv = (vec2(u, v)+vec2(row, col))/vec2(uNbRows, uNbCols);
+             vec2 uv = (vec2(u, v)+vec2(row, col))*vec2(uInvNbRows, uInvNbCols);
 
-             float l = smoothstep(uTreeUnitSize*4., uTreeUnitSize*2., length(vec2(dx.x, dx.z)));
+             float l = smoothstep(uTreeUnitSize*4., uTreeUnitSize*2., length(dx.xz));
 
-             vec4 tex = texture2D(uTreeTextureSampler, uv);
-             shadow = min(shadow, 1.-0.3*tex.a*tex.a*directionnalShadowFactor*l);
+             float alpha = texture2D(uTreeTextureSampler, uv).a;
+             shadow = min(shadow, 1.-0.3*alpha*alpha*directionnalShadowFactor*l);
 
            }
          }
-         if (length(p.xz-e.xz)<occlusionLength)
+         if (distXZPe<occlusionLength)
          {
-           shadow = min(shadow, 1.-0.3*smoothstep(occlusionLength, occlusionLength*0.5, length(p.xz-e.xz)));
+           shadow = min(shadow, 1.-0.3*smoothstep(occlusionLength, occlusionLength*0.5, distXZPe));
          }
        }
     }
@@ -97,11 +102,7 @@ float test(float uTreeToTest, float uTreeToTestX, float uTreeToTestY, float shad
 float computeTreeShadow(vec3 pos)
 {
   float shadow = 1.;
-/*
-  vec3 eyeToVertexDir = uEyePosInWorld-vVertexPosInWorld;
-  eyeToVertexDir.y=0.;
-  eyeToVertexDir = normalize(eyeToVertexDir);
-*/
+
   vec3 e = pos;
   vec3 w = normalize(uSunDir);
   vec2 n = normalize(uSunDir.xz);
@@ -113,7 +114,7 @@ float computeTreeShadow(vec3 pos)
   float occlusionLength = mix(uTreeLength/3., uTreeLength/2.1, ambiantShadowFactor);
 
   vec3 wodn = w/dot(n, w.xz);
-  vec2 pInit = (e.xz+mod(uPlayerPos.xz, uTreeUnitSize))/uTreeUnitSize;
+  vec2 pInit = (e.xz+mod(uPlayerPos.xz, uTreeUnitSize))/uTreeUnitSize+0.5;
 
   float angleStep = 6.28/(uNbRows*uNbCols);
   float angle = atan2(t.y, t.x);
@@ -149,30 +150,6 @@ float computeTreeShadow(vec3 pos)
   shadow = test(uTreeToTest[9], uTreeToTestX[9], uTreeToTestY[9], shadow, e, w, n,
                 t, directionnalShadowFactor, occlusionLength,
                 wodn, pInit, angleStep, angle);
-  shadow = test(uTreeToTest[10], uTreeToTestX[10], uTreeToTestY[10], shadow, e, w, n,
-                t, directionnalShadowFactor, occlusionLength,
-                wodn, pInit, angleStep, angle);
-  shadow = test(uTreeToTest[11], uTreeToTestX[11], uTreeToTestY[11], shadow, e, w, n,
-                t, directionnalShadowFactor, occlusionLength,
-                wodn, pInit, angleStep, angle);
-  shadow = test(uTreeToTest[12], uTreeToTestX[12], uTreeToTestY[12], shadow, e, w, n,
-                t, directionnalShadowFactor, occlusionLength,
-                wodn, pInit, angleStep, angle);
-  shadow = test(uTreeToTest[13], uTreeToTestX[13], uTreeToTestY[13], shadow, e, w, n,
-                t, directionnalShadowFactor, occlusionLength,
-                wodn, pInit, angleStep, angle);
-  shadow = test(uTreeToTest[14], uTreeToTestX[14], uTreeToTestY[14], shadow, e, w, n,
-                t, directionnalShadowFactor, occlusionLength,
-                wodn, pInit, angleStep, angle);
-  shadow = test(uTreeToTest[15], uTreeToTestX[15], uTreeToTestY[15], shadow, e, w, n,
-                t, directionnalShadowFactor, occlusionLength,
-                wodn, pInit, angleStep, angle);
-  shadow = test(uTreeToTest[16], uTreeToTestX[16], uTreeToTestY[16], shadow, e, w, n,
-                t, directionnalShadowFactor, occlusionLength,
-                wodn, pInit, angleStep, angle);
-  shadow = test(uTreeToTest[17], uTreeToTestX[17], uTreeToTestY[17], shadow, e, w, n,
-                t, directionnalShadowFactor, occlusionLength,
-                wodn, pInit, angleStep, angle);
 
   return shadow;
 }
@@ -202,7 +179,7 @@ void main(void)
   vNormal = normalize(normal);
   vVertexPosInWorld = pos;
 
-  vShadow = mix(0.8, computeTreeShadow(pos), smoothstep(0.0, 0.3, uSunDir.y));
+  vShadow = computeTreeShadow(pos);
 
   vDiffuseHeightOffset = groundTex.a;
 

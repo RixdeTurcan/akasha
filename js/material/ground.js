@@ -14,7 +14,7 @@ function GroundMaterial(name, scene, ground) {
     this.renderImpostorTex = false;
     this.impostorTexRendered = false;
 
-    this.nbTreeTestMax = 18;
+    this.nbTreeTestMax = 10;
 
     this.wireframe = false;
     _$body.keypress(function(e){
@@ -294,10 +294,10 @@ GroundMaterial.prototype.computeTreeToTest = function()
   var t = new BABYLON.Vector2(-n.y, n.x);
   var shadowLength = 2.*uTreeLength*Math.sqrt(1.-h*h)/h;
 
-  var posShadow = [t.scale(uTreeLength),
-                   t.scale(-uTreeLength),
-                   n.scale(shadowLength).add(t.scale(uTreeLength)),
-                   n.scale(shadowLength).add(t.scale(-uTreeLength))];
+  var posShadow = [t.scale(uTreeLength*0.5),
+                   t.scale(-uTreeLength*0.5),
+                   n.scale(shadowLength).add(t.scale(uTreeLength*0.5)),
+                   n.scale(shadowLength).add(t.scale(-uTreeLength*0.5))]; //0.5 ?
 
 
   //Compute the convex hull points
@@ -334,8 +334,8 @@ GroundMaterial.prototype.computeTreeToTest = function()
                        background: 'red',
                        zIndex: '10'});
       }
-  }*/
-
+  }
+*/
   var convexHull2 = getEnveloppeConvexe(convexHull, true);
   convexHull2.push(convexHull2[0]);
 /*
@@ -373,7 +373,7 @@ GroundMaterial.prototype.computeTreeToTest = function()
       }
     }
   }
-  //console.log(result.x.length);
+
 /*
   if (_test==0){
     _test = 1;
@@ -387,8 +387,8 @@ GroundMaterial.prototype.computeTreeToTest = function()
                        background: 'green',
                        zIndex: '3'});
       }
-  }
-*/
+  }*/
+console.log(result.x.length);
   //Fill the array
   for(var i=0; i<this.nbTreeTestMax-result.x.length; i++){
     result.x.push(0);
