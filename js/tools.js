@@ -146,6 +146,12 @@ function onAfterRenderMultiMatMesh(texture, func){
     }
 }
 
+function setMeshRenderPriority(mesh, priority)
+{
+    for (i = 0; i < mesh.subMeshes.length; i++) {
+        var submesh = mesh.subMeshes[i].renderPriority = priority;
+    }
+}
 
 function createVertexPassthroughMesh(material, scene, isVisible, isVisibleScreen)
 {
@@ -210,10 +216,13 @@ function FpsLogger(){
     this.endTime = {};
     this.duration = {};
     this.itteration = {};
+    this.order = {};
 
     this.lastLog = 0;
     this.shouldLog = false;
     this.logDelay = 500;
+
+    this.orderNb = 0;
 }
 
 FpsLogger.prototype.start = function(id)
@@ -222,6 +231,9 @@ FpsLogger.prototype.start = function(id)
         _gl.finish();
         //this.startTime[id] = (new Date).getTime();
         this.startTime[id] = performance.now();
+
+        this.order[id] = this.orderNb;
+        this.orderNb++;
     }
 }
 
@@ -281,16 +293,21 @@ FpsLogger.prototype.reset = function()
               if (_profilerOutput){
                   _profilerOutput.append('<tr><td style="padding-right:10px;padding-left:8px;">'+id+'</td>\
                                           <td style="padding-right:10px;">'+duration+' ms</td>\
-                                          <td style="padding-right:8px;">'+percent+' %</td></tr>');
+                                          <td style="padding-right:8px;">'+percent+' %</td>\
+                                          <td style="padding-right:8px;">'+this.order[id]+'</td></tr>');
               }
               _profilerOutput.append('</table>');
             }
+
         }
+        this.orderNb = 0;
     }
     else
     {
         this.duration = {};
         this.itteration = {};
+        this.order = {}
+        this.orderNb = 0;
     }
 }
 
@@ -891,12 +908,12 @@ Grid.prototype.reorderPosition = function()
                        id: i
         });
     }
-    count.sort(function(a, b){
+    count.sort(function(a, b){ //front to back
         if (a.val<b.val){
-            return 1;
+            return -1;
         }
         if (a.val>b.val){
-            return -1;
+            return 1;
         }
         return 0;
     });
@@ -948,7 +965,7 @@ Grid.prototype.makeLodMeshes = function(name, relativePositions, relativeUvs, re
     mesh.setVerticesData(BABYLON.VertexBuffer.UVKind, meshesUvs, updatable, 2);
     mesh.setVerticesData(BABYLON.VertexBuffer.ColorKind, meshesUv2s, updatable, 3);
     mesh.setIndices(meshesIndices);
-    //console.log(Math.round(Math.sqrt(meshesPositions.length/3))+"^2");
+   // console.log(Math.round(Math.sqrt(meshesPositions.length/3))+"^2");
 
     return mesh;
 }

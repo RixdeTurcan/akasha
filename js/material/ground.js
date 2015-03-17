@@ -388,7 +388,7 @@ GroundMaterial.prototype.computeTreeToTest = function()
                        zIndex: '3'});
       }
   }*/
-console.log(result.x.length);
+//console.log(result.x.length);
   //Fill the array
   for(var i=0; i<this.nbTreeTestMax-result.x.length; i++){
     result.x.push(0);

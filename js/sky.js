@@ -186,6 +186,7 @@ Sky.prototype.load = function(loaderCallback, loadingCallback){
     this.mesh = createVertexPassthroughMesh(this.material,
                                             _config.world.scene,
                                             true, true);
+    setMeshRenderPriority(this.mesh, 3);
 
     var lightPos = _config.sky.params.sunDir.clone();
     lightPos.x *= 100;
@@ -236,8 +237,8 @@ Sky.prototype.update = function(){
         var nbOctave = 12;
         var offsetLast = 1;
 
-        var depthNb = 1;//8;//32;
-        var depthSize = 114;//448;
+        var depthNb = 32;//1;//
+        var depthSize = 448;//114;
 
         if (this.step>=heightNb+depthNb){
             this.step -= heightNb+depthNb;

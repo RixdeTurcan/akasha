@@ -29,7 +29,7 @@ SpritesMaterial.prototype = Object.create(BABYLON.Material.prototype);
 
 // Properties
 SpritesMaterial.prototype.needAlphaBlending = function () {
-    return true;
+    return false;
 };
 
 SpritesMaterial.prototype.needAlphaTesting = function () {

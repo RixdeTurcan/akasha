@@ -1,9 +1,4 @@
-function Ground(camera, light){
-    assert(function(){return camera instanceof Camera;}, 'camera is not a Camera');
-    assert(function(){return light instanceof Light;}, 'light is not a Light');
-
-    this.camera = camera;
-    this.light = light;
+function Ground(){
 
     this.loaded = false;
     this.loading = false;
@@ -53,17 +48,17 @@ Ground.prototype.load = function(loaderCallback, loadingCallback){
     this.nbQuadrant = 40;
     this.meshToDisplay = 0;
 
+    //Ground
     this.mesh = [];
-    this.grid = new Grid(1024, 256);
-    this.grid.createGrid(20., 125, 125, 4, 1);
+    this.grid = new Grid(512, 256);
+    this.grid.createGrid(80., 125, 125, 2, 1);
     this.beta = [];
 
-    //Ground
     var groundFunc = function(i){
         var beta = 2.*_pi*i/this.nbQuadrant;
         var betaRange = _pi/5;
 
-        this.grid.clip(beta+_pi, betaRange, -950., 950.);
+        this.grid.clip(beta+_pi, betaRange, -1150., 1050.);
         this.mesh[i] = this.grid.makeClippedMesh("ground"+i, _config.world.scene);
 
         this.mesh[i].material = new BABYLON.MultiMaterial("groundMultiMat", _config.world.scene);
@@ -72,6 +67,7 @@ Ground.prototype.load = function(loaderCallback, loadingCallback){
         this.mesh[i].isInFrustum = function(){return true;};
         this.mesh[i].subMeshes[0].isInFrustum = function(){return true;};
         this.mesh[i].subMeshes[0].isHiddenScreen = true;
+        setMeshRenderPriority(this.mesh[i], 2);
 
         this.beta[i] = beta+_pi;
 
@@ -88,6 +84,8 @@ Ground.prototype.load = function(loaderCallback, loadingCallback){
         loadingFullCallback(this.loadingPercent);
     }.bind(this);
     groundFunc(0);
+
+
 
 
     //Trees
@@ -112,7 +110,7 @@ Ground.prototype.load = function(loaderCallback, loadingCallback){
         var beta = 2.*_pi*i/this.nbQuadrant;
         var betaRange = _pi/4.0;
 
-        this.treeGrid.clip(beta+_pi, betaRange, -950., 950., true, true);
+        this.treeGrid.clip(beta+_pi, betaRange, -1150., 1050., true, true);
 
         this.treeMesh[i] = this.treeGrid.makeLodMeshes("trees"+i, spritePos, spiteUv, spriteIndices,
                                                    _config.world.scene, false);
@@ -123,6 +121,7 @@ Ground.prototype.load = function(loaderCallback, loadingCallback){
         this.treeMesh[i].isInFrustum = function(){return true;};
         this.treeMesh[i].subMeshes[0].isInFrustum = function(){return true;};
         this.treeMesh[i].subMeshes[0].isHiddenScreen = true;
+        setMeshRenderPriority(this.treeMesh[i], 1);
 
         this.loadingPercent += 0.35/this.nbQuadrant
 
@@ -138,7 +137,6 @@ Ground.prototype.load = function(loaderCallback, loadingCallback){
 
     }.bind(this);
     treeFunc(0);
-
 
 /*
     var scaling = 1.;
@@ -226,7 +224,7 @@ Ground.prototype.load = function(loaderCallback, loadingCallback){
 
     //Ground height
     this.groundHeightTexture = createRenderTargetTexture('groundHeightTexture',
-                                                         {width:1024, height:256},
+                                                         {width:512, height:256},
                                                          _config.world.scene,
                                                          {
                                                              generateMipMaps: false,
@@ -234,7 +232,7 @@ Ground.prototype.load = function(loaderCallback, loadingCallback){
                                                          },
                                                          true,
                                                          new GroundHeightMaterial('groundHeightMaterial',
-                                                                                  1024, this, this.grid,
+                                                                                  512, this, this.grid,
                                                                                   _config.world.scene),
                                                          this.material,
                                                          "passthrough");

@@ -652,3 +652,80 @@ BABYLON.Engine.prototype.setAlphaMode = function (mode) {
     }
 };
 */
+
+BABYLON.RenderingGroup.prototype.render = function (customRenderFunction) {
+    if (customRenderFunction) {
+        customRenderFunction(this._opaqueSubMeshes, this._alphaTestSubMeshes, this._transparentSubMeshes);
+        return true;
+    }
+    if (this._opaqueSubMeshes.length === 0 && this._alphaTestSubMeshes.length === 0 && this._transparentSubMeshes.length === 0) {
+        return false;
+    }
+    var engine = this._scene.getEngine();
+    // Opaque
+    var subIndex;
+    var submesh;
+
+    ///++++++
+    var sortedArrayOpaque = this._opaqueSubMeshes.data.slice(0, this._opaqueSubMeshes.length);
+    sortedArrayOpaque.sort(function (a, b) {
+        if (a.renderPriority && b.renderPriority) {
+              if (a.renderPriority < b.renderPriority) {
+                return -1;
+              }
+              if (a.renderPriority > b.renderPriority) {
+                return 1;
+              }
+              return 0;
+        }
+    });
+
+    for (subIndex = 0; subIndex < sortedArrayOpaque.length; subIndex++) { //replaced
+        submesh = sortedArrayOpaque[subIndex]; //replaced
+        submesh.render();
+    }
+    ///!++++++
+
+    // Alpha test
+    engine.setAlphaTesting(true);
+    for (subIndex = 0; subIndex < this._alphaTestSubMeshes.length; subIndex++) {
+        submesh = this._alphaTestSubMeshes.data[subIndex];
+        submesh.render();
+    }
+    engine.setAlphaTesting(false);
+    // Transparent
+    if (this._transparentSubMeshes.length) {
+        for (subIndex = 0; subIndex < this._transparentSubMeshes.length; subIndex++) {
+            submesh = this._transparentSubMeshes.data[subIndex];
+            submesh._alphaIndex = submesh.getMesh().alphaIndex;
+            submesh._distanceToCamera = submesh.getBoundingInfo().boundingSphere.centerWorld.subtract(this._scene.activeCamera.position).length();
+        }
+        var sortedArray = this._transparentSubMeshes.data.slice(0, this._transparentSubMeshes.length);
+        sortedArray.sort(function (a, b) {
+            // Alpha index first
+            if (a._alphaIndex > b._alphaIndex) {
+                return 1;
+            }
+            if (a._alphaIndex < b._alphaIndex) {
+                return -1;
+            }
+
+            // Then distance to camera
+            if (a._distanceToCamera < b._distanceToCamera) {
+                return 1;
+            }
+            if (a._distanceToCamera > b._distanceToCamera) {
+                return -1;
+            }
+            return 0;
+        });
+        // Rendering
+        engine.setAlphaMode(BABYLON.Engine.ALPHA_COMBINE);
+        for (subIndex = 0; subIndex < sortedArray.length; subIndex++) {
+            submesh = sortedArray[subIndex];
+            submesh.render();
+        }
+        engine.setAlphaMode(BABYLON.Engine.ALPHA_DISABLE);
+    }
+    return true;
+};

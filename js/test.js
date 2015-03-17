@@ -146,32 +146,40 @@ Test.prototype.startGroundTest = function(){
 
         }.bind(this));
 
-        //Add a sky
-        this.skytest.sky = new Sky(this.skytest.camera, true);
-        this.skytest.sky.load(loaderCallback, loadingCallback);
+        loaderCallback();
     }.bind(this));
+
 
     loader.add(function(loaderCallback, loadingCallback){
 
         //Add a wireframe grid ground
-        this.skytest.groundWire = new BABYLON.Mesh.CreateGround("groundWire", 20000, 20000, 255,
-                                                                this.skytest.world.scene, false);
-        this.skytest.groundWire.dontLog = true;
-        this.skytest.groundWire.material = new BABYLON.StandardMaterial("groundWireMat",
-                                                                        this.skytest.world.scene);
-        this.skytest.groundWire.material.wireframe = true;
+        //this.skytest.groundWire = new BABYLON.Mesh.CreateGround("groundWire", 20000, 20000, 255,
+        //                                                        this.skytest.world.scene, false);
+        //this.skytest.groundWire.dontLog = true;
+        //this.skytest.groundWire.material = new BABYLON.StandardMaterial("groundWireMat",
+        //                                                                this.skytest.world.scene);
+        //this.skytest.groundWire.material.wireframe = true;
         //this.skytest.groundWire.material.alpha = 0.2;
-        this.skytest.groundWire.material.diffuseColor = new BABYLON.Color3(0.5, 0.5, 0.5);
-        this.skytest.groundWire.material.specularColor = new BABYLON.Color3(0.0, 0.0, 0.0);
-
+        //this.skytest.groundWire.material.diffuseColor = new BABYLON.Color3(0.5, 0.5, 0.5);
+        //this.skytest.groundWire.material.specularColor = new BABYLON.Color3(0.0, 0.0, 0.0);
 
         //Add the ground
-        this.skytest.ground = new Ground(this.skytest.camera, this.skytest.sky.light);
+        this.skytest.ground = new Ground();
 
+
+        //Add a sky
+        this.skytest.sky = new Sky(this.skytest.camera, true);
+
+
+        //Load the ground
         this.skytest.ground.load(function(){
             this.skytest.ground.addSkyTexture(this.skytest.sky.renderTexture);
             loaderCallback();
         }.bind(this), loadingCallback);
+
+
+        //Load the sky
+        this.skytest.sky.load(loaderCallback, loadingCallback);
     }.bind(this));
 
     loader.start();
