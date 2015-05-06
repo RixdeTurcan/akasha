@@ -155,6 +155,7 @@ float computeTreeShadow(vec3 pos)
 }
 
 varying float vShadow;
+varying vec3 vFlatPosInWorld;
 
 void main(void)
 {
@@ -171,6 +172,14 @@ void main(void)
                      sqrt(1.-groundTex.y*groundTex.y-groundTex.z*groundTex.z),
                      groundTex.z);
 
+  vFlatPosInWorld = pos;
+
+  //Spherify the world
+  float uEarthRadius = 200000.;
+  float dist = length(pos.xz);
+  float height = uEarthRadius + pos.y;
+  pos.y = height/sqrt(1.+dist*dist/(height*height)) - uEarthRadius;
+
 
   //Fill some varying
   #ifdef GRASS
@@ -182,6 +191,7 @@ void main(void)
   vShadow = computeTreeShadow(pos);
 
   vDiffuseHeightOffset = groundTex.a;
+
 
   //Compute the screen position
   gl_Position = uViewProjection * vec4(pos, 1.);

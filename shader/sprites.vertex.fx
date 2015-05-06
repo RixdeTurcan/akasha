@@ -68,6 +68,14 @@ void main(void)
 
     angleFactor = mix(angleFactor, floor(angleFactor+0.5), smoothstep(3500., 4000., eyeToVertexDist));
 
+
+    //Spherify the world
+    float uEarthRadius = 200000.;
+    float dist = length(pos.xz);
+    float height = uEarthRadius + pos.y;
+    pos.y = height/sqrt(1.+dist*dist/(height*height)) - uEarthRadius;
+
+
     //Fill some varyingq
     vAngleFactor = angleFactor ;
     vUv1 = vec2(((uv.x*2.-1.)/cos(angleFactor*angleStep))*0.5+0.5, uv.y);
@@ -80,6 +88,8 @@ void main(void)
       vTangent = tangent;
     #endif
     vVertexPosInWorld = pos;
+
+
     //Compute the screen position
     gl_Position = uViewProjection * vec4(pos, 1.);
   }

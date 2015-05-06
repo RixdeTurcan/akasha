@@ -153,7 +153,7 @@ void main() {
   #endif
 
   float specularFactor = 0.4;
-  float diffuseFactor = 0.6;
+  float diffuseFactor = 0.6*1.5;
 
   color = vec4(diffuseColor * diffuseFactor + specularColor * specularFactor, 1.) * diffuseBaseColor;
 

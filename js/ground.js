@@ -8,6 +8,7 @@ function Ground(){
     this.nbTextureLoaded = 0;
     this.textureLoaded = false;
     this.groundMeshLoaded = false;
+    this.seabedMeshLoaded = false;
     this.treeMeshLoaded = false;
     this.loadingPercent = 0;
     this.impostorTexRendering = false;
@@ -19,7 +20,7 @@ Ground.prototype.load = function(loaderCallback, loadingCallback){
 
     var loadingFullCallback = function(percent){
         loadingCallback(percent);
-        if (this.groundMeshLoaded && this.treeMeshLoaded && this.textureLoaded && this.loading){
+        if (this.groundMeshLoaded && this.seabedMeshLoaded && this.treeMeshLoaded && this.textureLoaded && this.loading){
             this.loading = false;
             loaderCallback();
         }
@@ -85,6 +86,38 @@ Ground.prototype.load = function(loaderCallback, loadingCallback){
     }.bind(this);
     groundFunc(0);
 
+    //seabed Ground
+    this.seabedMesh = [];
+    this.seabedGrid = new Grid(256, 128);
+    this.seabedGrid.createGrid(160., 60, 60, 2, 1);
+
+    var seabedFunc = function(i){
+        var beta = 2.*_pi*i/this.nbQuadrant;
+        var betaRange = _pi/4.;
+
+        this.seabedGrid.clip(beta+_pi, betaRange, -1300., 1050.);
+        this.seabedMesh[i] = this.seabedGrid.makeClippedMesh("seabedGround"+i, _config.world.scene);
+
+        this.seabedMesh[i].material = new BABYLON.MultiMaterial("seabedGroundMultiMat", _config.world.scene);
+        this.seabedMesh[i].subMeshes = [];
+        addMaterialToMesh(this.material, this.seabedMesh[i], false, false);
+        this.seabedMesh[i].isInFrustum = function(){return true;};
+        this.seabedMesh[i].subMeshes[0].isInFrustum = function(){return true;};
+        this.seabedMesh[i].subMeshes[0].isHiddenScreen = true;
+
+        this.loadingPercent += 0.35/this.nbQuadrant;
+
+        if (i<this.nbQuadrant){
+            setTimeout(function(){
+                seabedFunc(i+1);
+            }.bind(this), 10);
+        }else{
+            this.seabedMeshLoaded = true;
+        }
+
+        loadingFullCallback(this.loadingPercent);
+    }.bind(this);
+    seabedFunc(0);
 
 
 
@@ -177,6 +210,7 @@ Ground.prototype.load = function(loaderCallback, loadingCallback){
     this.treeMaterial.bumpTexture =  new BABYLON.Texture("asset/pine/impostor_normal.png", _config.world.scene, false, false, BABYLON.Texture.TRILINEAR_SAMPLINGMODE, loadingFunction);
     this.material.treeTexture = new BABYLON.Texture("asset/pine/impostor_color_low.png", _config.world.scene, true, false, BABYLON.Texture.TRILINEAR_SAMPLINGMODE, loadingFunction);
 
+
     //Noise texture
     this.noiseTexture = new BABYLON.Texture("asset/noise.png", _config.world.scene, true, false, BABYLON.Texture.TRILINEAR_SAMPLINGMODE, loadingFunction);
     this.noiseTexture.wrapU = BABYLON.Texture.WRAP_ADDRESSMODE;
@@ -258,6 +292,47 @@ Ground.prototype.load = function(loaderCallback, loadingCallback){
 
 
 
+    //Seabed height
+    this.seabedHeightTexture = createRenderTargetTexture('seabedHeightTexture',
+                                                         {width:256, height:128},
+                                                         _config.world.scene,
+                                                         {
+                                                             generateMipMaps: false,
+                                                             generateDepthBuffer: false
+                                                         },
+                                                         true,
+                                                         new GroundHeightMaterial('seabedHeightMaterial',
+                                                                                  256, this, this.seabedGrid,
+                                                                                  _config.world.scene),
+                                                         this.material,
+                                                         "passthrough");
+    this.seabedHeightTexture.material.noiseTexture = this.noiseTexture;
+
+    //Seabed texture
+    this.seabedTexture = createRenderTargetTexture('seabedTexture',
+                                                   512,
+                                                   _config.world.scene,
+                                                   {
+                                                       generateMipMaps: false,
+                                                       generateDepthBuffer: false
+                                                   },
+                                                   true,
+                                                   new GroundMaterial("seabedMaterial", _config.world.scene, this),
+                                                   this.material);
+    this.seabedTexture.material.groundHeightTexture = this.seabedHeightTexture;
+    this.seabedTexture.material.noiseTexture = this.noiseTexture;
+    this.seabedTexture.material.grassTexture = this.material.grassTexture;
+    this.seabedTexture.material.diffuse1Texture = this.material.diffuse1Texture;
+    this.seabedTexture.material.diffuseNormal1Texture = this.material.diffuseNormal1Texture;
+    this.seabedTexture.material.diffuseFar1Texture = this.material.diffuseFar1Texture;
+    this.seabedTexture.material.diffuse2Texture = this.material.diffuse2Texture;
+    this.seabedTexture.material.diffuseNormal2Texture = this.material.diffuseNormal2Texture;
+    this.seabedTexture.material.diffuseFar2Texture = this.material.diffuseFar2Texture;
+    this.seabedTexture.material.diffuse3Texture = this.material.diffuse3Texture;
+    this.seabedTexture.material.diffuseNormal3Texture = this.material.diffuseNormal3Texture;
+    this.seabedTexture.material.diffuseFar3Texture = this.material.diffuseFar3Texture;
+    this.seabedTexture.material.skyTexture = this.material.skyTexture;
+    this.seabedTexture.material.underWater = true;
 
 /*
     //Reflection
@@ -359,15 +434,29 @@ Ground.prototype.addShadowTexture = function(shadowTexture)
     this.material.shadowTexture = shadowTexture;
 }
 
+Ground.prototype.setSeabedMesh = function(mesh)
+{
+    this.seabedTexture.renderList = [mesh];
+    this.seabedTexture.meshList = [mesh];
 
+    mesh.material.subMaterials[0] = this.seabedTexture.material;
+
+    this.seabedTexture.subMeshIdList = [0];
+
+    this.seabedTexture.onBeforeRender = onBeforeRenderMultiMatMesh(this.seabedTexture);
+    this.seabedTexture.onAfterRender = onAfterRenderMultiMatMesh(this.seabedTexture);
+}
 
 Ground.prototype.update = function()
 {
     if (!this.loaded){return;}
 
-    if (this.groundMeshLoaded && this.treeMeshLoaded){
+    if (this.groundMeshLoaded && this.treeMeshLoaded && this.seabedMeshLoaded){
         this.mesh[this.meshToDisplay].subMeshes[0].isHiddenScreen = true;
         this.treeMesh[this.meshToDisplay].subMeshes[0].isHiddenScreen = true;
+
+        this.setSeabedMesh(this.seabedMesh[this.meshToDisplay]);
+
 
         this.meshToDisplay = Math.round((_config.player.angle.mod(2.*_pi))/(2.*_pi/this.nbQuadrant)).mod(this.nbQuadrant);
 

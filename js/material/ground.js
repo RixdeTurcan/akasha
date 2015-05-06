@@ -16,6 +16,8 @@ function GroundMaterial(name, scene, ground) {
 
     this.nbTreeTestMax = 10;
 
+    this.underWater = false;
+
     this.wireframe = false;
     _$body.keypress(function(e){
         this.wireframe = e.which==119?!this.wireframe:this.wireframe;
@@ -71,6 +73,14 @@ GroundMaterial.prototype.getRenderTargetTextures = function () {
 
     if (this.spriteHeightTexture && this.spriteHeightTexture.isRenderTarget){
                 this._renderTargets.push(this.spriteHeightTexture);
+    }
+
+    if (this.seabedHeightTexture && this.seabedHeightTexture.isRenderTarget){
+                this._renderTargets.push(this.seabedHeightTexture);
+    }
+
+    if (this.seabedTexture && this.seabedTexture.isRenderTarget){
+                this._renderTargets.push(this.seabedTexture);
     }
 
     return this._renderTargets;
@@ -194,6 +204,11 @@ GroundMaterial.prototype.isReady = function (mesh) {
         }else if (this._scene.fogMode == BABYLON.Scene.FOGMODE_EXP2){
             defines.push("#define FOGMODE_EXP2");
         }
+    }
+
+    // Under water clipping
+    if (this.underWater){
+        defines.push("#define UNDER_WATER")
     }
 
     // Lights

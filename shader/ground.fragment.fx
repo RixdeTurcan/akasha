@@ -183,8 +183,22 @@ varying float vDiffuseHeightOffset;
 #endif
 
 varying float vShadow;
+varying vec3 vFlatPosInWorld;
 
 void main(void) {
+  float clipEps = 10.;
+  #ifdef UNDER_WATER
+    if (vFlatPosInWorld.y>clipEps){
+      discard;
+      return;
+    }
+  #else
+    if (vFlatPosInWorld.y<-clipEps){
+      discard;
+      return;
+    }
+  #endif
+
   vec4 color = vec4(0., 0., 0., 1.);
 
   //Compute the direction and the distance eye -> vertex
@@ -228,7 +242,7 @@ void main(void) {
 
 
   //Compute diffuse factors
-  vec3 diffuseFactors = computeDiffuseFactors(vVertexPosInWorld.y-vDiffuseHeightOffset);
+  vec3 diffuseFactors = computeDiffuseFactors(vFlatPosInWorld.y-vDiffuseHeightOffset);
 
   //Compute diffuse normal factors
   float cosNormalAngle = dot(normal, vec3(0., 1., 0.));

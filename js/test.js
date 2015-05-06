@@ -8,6 +8,7 @@ function Test(number)
     this.addTest('Sky', 1);
     this.addTest('Cloud', 2);
     this.addTest('Ground', 3);
+    this.addTest('Ocean', 5);
     this.addTest('SpriteGen', 4, '&dir=asset/pine/&name=Eucalyptus');
 
 
@@ -28,7 +29,9 @@ Test.prototype.startTest = function(num){
       this.startGroundTest();
     }else if (num == 4){
       this.startSpriteGenTest();
-    }
+    }else if (num == 5){
+        this.startOceanTest();
+      }
 }
 
 Test.prototype.startSpriteGenTest = function(){
@@ -185,6 +188,120 @@ Test.prototype.startGroundTest = function(){
     loader.start();
 }
 
+
+Test.prototype.startOceanTest = function(){
+
+    _$body.append('<div id="loadPercent" class="controlpanelBlock ui-widget-content">Loading: 0 %</div>');
+    var $loadPercent = $('#loadPercent');
+
+    var loader = new Loader(function(loadPercent){
+        $loadPercent.html('Loading: '+(Math.floor(loadPercent*100.))+' %');
+        $('#canvas').css('display', 'none');
+
+    }, function(){
+        $loadPercent.css('display', 'none');
+        $('#canvas').css('display', 'block');
+    });
+
+    //Build the world
+    loader.add(function(loaderCallback, loadingCallback){
+        this.skytest.world = new World($('#canvas'));
+        this.skytest.camera = new Camera(CameraType_ArcRotate, new BABYLON.Vector3(0, 250, 0));
+        this.skytest.player = new Player(this.skytest.camera);
+
+        this.skytest.camera.activate();
+        this.skytest.camera.enableControl();
+
+        //Add control panel
+        this.createSkyTestControlPanel();
+        this.createSkyTestProfiler();
+        this.createOceanTestRTTPrinter();
+
+        //Render loop
+        this.skytest.world.startRendering(function(){
+            if (this.skytest.player){
+                this.skytest.player.update();
+            }
+            if (this.skytest.camera){
+                this.skytest.camera.update();
+            }
+            if (this.skytest.world){
+                this.skytest.world.update();
+            }
+            if (this.skytest.sky){
+                this.skytest.sky.update();
+            }
+            if (this.skytest.ground){
+                this.skytest.ground.update();
+            }
+            if (this.skytest.ocean){
+                this.skytest.ocean.update();
+            }
+
+            this.printRTT(this.rttTextureToRender);
+
+
+            if (this.skytest.world.scene.getAnimationRatio()){
+                _config.dt = 0.01 * this.skytest.world.scene.getAnimationRatio();
+                _config.time += _config.dt;
+                _config.step += 1;
+            }
+
+        }.bind(this));
+
+        loaderCallback();
+    }.bind(this));
+
+
+    loader.add(function(loaderCallback, loadingCallback){
+
+        //Add a wireframe grid ground
+        //this.skytest.groundWire = new BABYLON.Mesh.CreateGround("groundWire", 20000, 20000, 255,
+        //                                                        this.skytest.world.scene, false);
+        //this.skytest.groundWire.dontLog = true;
+        //this.skytest.groundWire.material = new BABYLON.StandardMaterial("groundWireMat",
+        //                                                                this.skytest.world.scene);
+        //this.skytest.groundWire.material.wireframe = true;
+        //this.skytest.groundWire.material.alpha = 0.2;
+        //this.skytest.groundWire.material.diffuseColor = new BABYLON.Color3(0.5, 0.5, 0.5);
+        //this.skytest.groundWire.material.specularColor = new BABYLON.Color3(0.0, 0.0, 0.0);
+
+        //Add the ground
+        this.skytest.ground = new Ground();
+
+
+        //Add a sky
+        this.skytest.sky = new Sky(this.skytest.camera, true);
+
+
+        //Load the ground
+        this.skytest.ground.load(function(){
+            this.skytest.ground.addSkyTexture(this.skytest.sky.renderTexture);
+            loaderCallback();
+        }.bind(this), loadingCallback);
+
+
+        //Load the sky
+        this.skytest.sky.load(loaderCallback, loadingCallback);
+    }.bind(this));
+
+
+    loader.add(function(loaderCallback, loadingCallback){
+        //Add the ocean
+        this.skytest.ocean = new Ocean();
+
+        //Load the ocean
+        this.skytest.ocean.load(function(){
+            this.skytest.ocean.addSkyTexture(this.skytest.sky.renderTexture);
+            this.skytest.ocean.addSeabedTexture(this.skytest.ground.seabedTexture);
+            this.skytest.ocean.addGroundHeightTexture(this.skytest.ground.groundHeightTexture);
+            loaderCallback();
+        }.bind(this), loadingCallback);
+    }.bind(this));
+
+    loader.start();
+}
+
 Test.prototype.startCloudTest = function(){
 
     //Build the world
@@ -330,6 +447,34 @@ Test.prototype.createSpriteGenTestRTTPrinter = function(){
 }
 
 
+Test.prototype.createOceanTestRTTPrinter = function(){
+    this.initRTTPrinter();
+    this.initControlPanelSection(this.$rttPanel, this.$rttTitle, 'None');
+    this.initControlPanelSection(this.$rttPanel, this.$rttTitle, 'skyTex');
+    this.initControlPanelSection(this.$rttPanel, this.$rttTitle, 'seabedHeight');
+    this.initControlPanelSection(this.$rttPanel, this.$rttTitle, 'seabed');
+    this.startControlPanel(this.$rttPanel);
+
+    var f = function(name){
+        this.RTTBinded = true;
+        if (name=="skyTex"){
+            this.rttTextureToRender.material.texture = this.skytest.ocean.material.skyTexture;
+        }else if (name=="seabedHeight"){
+            this.rttTextureToRender.material.texture = this.skytest.ground.seabedHeightTexture;
+        }else if (name=="seabed"){
+            this.rttTextureToRender.material.texture = this.skytest.ground.seabedTexture;
+        }else{
+            this.rttTextureToRender.material.texture = null;
+            this.RTTBinded = false;
+        }
+    }.bind(this)
+
+    this.$rttPanel.on("tabsactivate", function(e, ui){
+        f(ui.newTab.children().html());
+    });
+    f("None");
+}
+
 Test.prototype.createGroundTestRTTPrinter = function(){
     this.initRTTPrinter();
     this.initControlPanelSection(this.$rttPanel, this.$rttTitle, 'None');
@@ -354,6 +499,7 @@ Test.prototype.createGroundTestRTTPrinter = function(){
     });
     f("None");
 }
+
 
 Test.prototype.createCloudTestRTTPrinter = function(){
     this.initRTTPrinter();
